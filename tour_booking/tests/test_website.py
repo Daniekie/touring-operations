@@ -177,7 +177,7 @@ class TestWebsite(HttpCase, TourCase):
         for an anonymous visitor is the server's — advertises a 13:00 dive and
         sends people to the dock four hours late.
         """
-        self.tour.tz = "America/Curacao"
+        self.env.company.tour_tz = "America/Curacao"
         departure = self.env["tour.departure"].create({
             "tour_id": self.tour.id,
             "date": fields.Date.today() + timedelta(days=20),

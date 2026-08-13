@@ -6,7 +6,7 @@
         <field name="model">tour.availability.rule</field>
         <field name="arch" type="xml">
             <list string="Availability Rules">
-                <field name="tour_id"/>
+                <field name="tour_id" options="{'no_create': True}"/>
                 <field name="internal_label"/>
                 <field name="recurrence"/>
                 <field name="date_from"/>
@@ -35,7 +35,7 @@
                     </div>
                     <group>
                         <group string="Tour">
-                            <field name="tour_id"/>
+                            <field name="tour_id" options="{'no_create': True}"/>
                             <field name="active" widget="boolean_toggle"/>
                         </group>
                         <group string="Period">
@@ -86,7 +86,7 @@
         <field name="model">tour.availability.rule</field>
         <field name="arch" type="xml">
             <search string="Availability Rules">
-                <field name="tour_id"/>
+                <field name="tour_id" options="{'no_create': True}"/>
                 <field name="internal_label"/>
                 <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
                 <group name="group_by">

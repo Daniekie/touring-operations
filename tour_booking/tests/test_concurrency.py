@@ -118,7 +118,6 @@ class TestConcurrentBooking(TransactionCase):
                 "duration_hours": 2.0,
                 "default_capacity": 3,
                 "booking_cutoff_hours": 0,
-                "tz": "UTC",
                 "price_per_person": 10.0,
                 "start_time_ids": [(0, 0, {"time_of_day": 9.0})],
             })

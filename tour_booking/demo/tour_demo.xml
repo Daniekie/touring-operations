@@ -155,7 +155,6 @@ Instructor</field>
         <field name="default_capacity">20</field>
         <field name="booking_cutoff_hours">4</field>
         <field name="has_specific_time" eval="True"/>
-        <field name="tz">America/Kralendijk</field>
         <field name="price_per_person">65.0</field>
         <field name="location_id" ref="demo_location_marina"/>
         <field name="meeting_point_note">Come to the dock, not the shop — the boat leaves on time for the light.</field>
@@ -232,7 +231,6 @@ Instructor</field>
         <field name="default_capacity">8</field>
         <field name="booking_cutoff_hours">24</field>
         <field name="has_specific_time" eval="True"/>
-        <field name="tz">America/Kralendijk</field>
         <field name="price_per_person">110.0</field>
         <field name="location_id" ref="demo_location_dive_shop"/>
         <field name="meeting_point_note">Ask for Marco at the counter — bring your certification card.</field>
@@ -322,7 +320,6 @@ Instructor</field>
         <field name="default_capacity">12</field>
         <field name="booking_cutoff_hours">12</field>
         <field name="has_specific_time" eval="True"/>
-        <field name="tz">America/Kralendijk</field>
         <field name="price_per_person">95.0</field>
         <field name="location_id" ref="demo_location_marina"/>
         <field name="cancellation_policy_id" ref="demo_policy_standard"/>
@@ -397,7 +394,6 @@ Instructor</field>
         <field name="default_capacity">16</field>
         <field name="booking_cutoff_hours">12</field>
         <field name="has_specific_time" eval="True"/>
-        <field name="tz">America/Kralendijk</field>
         <field name="price_per_person">85.0</field>
         <field name="location_id" ref="demo_location_marina"/>
         <field name="meeting_point_note">There is no shade and no shop on Klein Bonaire. Bring what you need.</field>

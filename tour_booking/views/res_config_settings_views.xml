@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.tour.booking</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="70"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Tours" string="Tours" name="tour_booking"
+                     groups="tour_booking.group_tour_manager">
+                    <block title="Scheduling" name="tour_scheduling_container">
+                        <setting id="tour_timezone" string="Tour Timezone"
+                                 help="The timezone your start times are written in.">
+                            <field name="tour_tz"/>
+                            <div class="text-muted mt-2">
+                                Departures are generated up to a year ahead, so
+                                this is what keeps a 09:00 tour at 09:00 local
+                                across a daylight saving change. It applies to
+                                every tour: an operator runs in one place.
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

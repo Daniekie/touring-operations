@@ -1,5 +1,4 @@
 from odoo import _, api, fields, models
-from odoo.addons.base.models.res_partner import _tz_get
 from odoo.exceptions import ValidationError
 
 
@@ -54,15 +53,11 @@ class TourTour(models.Model):
         help="Uncheck for a date-only experience with no fixed start time. Its "
              "departures then run from midnight in the tour's timezone.",
     )
-    tz = fields.Selection(
-        _tz_get,
-        string="Timezone",
-        required=True,
-        default=lambda self: self.env.company.partner_id.tz or "UTC",
-        help="The timezone the start times are written in. Departures are "
-             "generated months ahead, so without this every departure across a "
-             "daylight saving boundary would be an hour out.",
-    )
+    # Read from the company rather than stored per tour: an operator runs in one
+    # place, and asking the same question on every tour only creates chances to
+    # answer it inconsistently. Kept as a field named `tz` so the generator and
+    # `_local_start` still have one obvious thing to read.
+    tz = fields.Selection(related="company_id.tour_tz", string="Timezone")
 
     price_per_person = fields.Monetary(
         required=True, default=0.0, currency_field="currency_id"
@@ -152,13 +147,23 @@ class TourTour(models.Model):
             if tour.booking_cutoff_hours < 0:
                 raise ValidationError(_("The booking cut-off cannot be negative."))
 
-    @api.constrains("has_specific_time", "start_time_ids")
+    @api.constrains("has_specific_time", "start_time_ids", "is_published")
     def _check_start_times(self):
+        """Checked at publication, not at every save.
+
+        A tour is built up over several sittings — name and price first, the
+        schedule later — and a rule that refuses the first save until the start
+        times exist makes creating a tour a single unskippable form. Publishing
+        is the moment it has to be true, because that is when a guest can reach
+        it, and a published tour with no start times generates no departures and
+        so is an unbookable page.
+        """
         for tour in self:
-            if tour.has_specific_time and not tour.start_time_ids:
+            if tour.is_published and tour.has_specific_time and not tour.start_time_ids:
                 raise ValidationError(_(
-                    "%s has start times switched on but none defined. Add a "
-                    "start time, or turn it into a date-only tour.",
+                    "%s cannot be published: it has start times switched on but "
+                    "none defined. Add a start time, or turn it into a date-only "
+                    "tour.",
                     tour.name,
                 ))
 

@@ -19,17 +19,75 @@
         </field>
     </record>
 
+    <!-- The default view for the Tours menu. A catalogue of photographs is a
+         far better landing than a list of rows, and the images are already
+         there for the website. -->
+    <record id="tour_tour_view_kanban" model="ir.ui.view">
+        <field name="name">tour.tour.kanban</field>
+        <field name="model">tour.tour</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard">
+                <field name="currency_id"/>
+                <templates>
+                    <t t-name="card" class="p-0">
+                        <div class="o_tour_kanban_image">
+                            <img t-if="record.image_1920.raw_value"
+                                 t-att-src="kanban_image('tour.tour', 'image_1920', record.id.raw_value)"
+                                 alt="Tour"/>
+                            <div t-else="" class="o_tour_kanban_placeholder">
+                                <i class="fa fa-picture-o fa-2x" title="No image"/>
+                            </div>
+                        </div>
+                        <div class="p-2">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <strong class="fs-5"><field name="name"/></strong>
+                                <field name="is_published" widget="boolean_toggle"/>
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fa fa-clock-o me-1" title="Duration"/><field name="duration_display"/>
+                                <t t-if="record.location_id.value">
+                                    <i class="fa fa-map-marker ms-2 me-1" title="Meeting point"/>
+                                    <field name="location_id"/>
+                                </t>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <field name="price_per_person" widget="monetary"/>
+                                <span class="text-muted">
+                                    <field name="departure_count"/> departures
+                                </span>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!--
+        Creating and editing are deliberately different jobs here.
+
+        A new tour asks for four things: name, duration, capacity, price. Eight
+        notebook tabs on an empty form reads as "this will take an hour"; four
+        fields and a save reads as "done, now let's add detail". Everything that
+        needs the record to exist — its schedule, its gallery, its bookings —
+        appears once it does, keyed off `invisible="not id"`.
+    -->
     <record id="tour_tour_view_form" model="ir.ui.view">
         <field name="name">tour.tour.form</field>
         <field name="model">tour.tour</field>
         <field name="arch" type="xml">
             <form string="Tour">
-                <header>
+                <header invisible="not id">
                     <button name="action_view_departures" type="object"
                             string="Departures" class="oe_highlight"/>
                 </header>
                 <sheet>
-                    <div class="oe_button_box" name="button_box">
+                    <!-- `id` has to be on the form for the expressions below to
+                         read it. -->
+                    <field name="id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+
+                    <div class="oe_button_box" name="button_box" invisible="not id">
                         <button name="action_view_departures" type="object"
                                 class="oe_stat_button" icon="fa-calendar">
                             <field name="departure_count" widget="statinfo" string="Departures"/>
@@ -39,36 +97,47 @@
                             <field name="booking_count" widget="statinfo" string="Bookings"/>
                         </button>
                     </div>
-                    <field name="image_1920" widget="image" class="oe_avatar"/>
+                    <field name="image_1920" widget="image" class="oe_avatar"
+                           invisible="not id"/>
                     <div class="oe_title">
                         <label for="name"/>
-                        <h1><field name="name" placeholder="Blue Hole Dive"/></h1>
+                        <h1><field name="name" placeholder="Lobster Sunset Tour"/></h1>
                     </div>
+
+                    <!-- The whole of a new tour. -->
                     <group>
-                        <group string="The Experience">
+                        <group string="The Basics">
                             <field name="duration_hours" widget="float_time"/>
-                            <field name="location_id"/>
-                            <field name="meeting_point_note" placeholder="Ask for Marco at the counter"/>
-                        </group>
-                        <group string="Selling">
-                            <field name="price_per_person"/>
-                            <field name="currency_id" invisible="1"/>
-                            <field name="tax_ids" widget="many2many_tags"/>
                             <field name="default_capacity"/>
+                            <field name="price_per_person"/>
+                        </group>
+                        <group invisible="not id">
+                            <field name="location_id" options="{'no_create_edit': True}"/>
+                            <field name="tax_ids" widget="many2many_tags"/>
                             <field name="is_published" widget="boolean_toggle"/>
                         </group>
+                    </group>
+
+                    <div class="alert alert-info" role="alert" invisible="id">
+                        Save to add start times, availability, content and photos.
+                    </div>
+
+                    <group invisible="not id">
                         <group string="Scheduling">
-                            <field name="tz"/>
                             <field name="has_specific_time"/>
                             <field name="booking_cutoff_hours"/>
                         </group>
                         <group string="Optional Settings">
-                            <field name="cancellation_policy_id"/>
+                            <field name="cancellation_policy_id"
+                                   options="{'no_create_edit': True}"/>
+                            <field name="meeting_point_note"
+                                   placeholder="Ask for Marco at the counter"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                             <field name="active" widget="boolean_toggle"/>
                         </group>
                     </group>
-                    <notebook>
+
+                    <notebook invisible="not id">
                         <page string="Description" name="description">
                             <field name="description" placeholder="What the guest is buying..."/>
                         </page>
@@ -77,6 +146,19 @@
                             <field name="start_time_ids">
                                 <list editable="bottom">
                                     <field name="time_of_day" widget="float_time"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Availability" name="availability">
+                            <field name="availability_rule_ids" context="{'default_tour_id': id}">
+                                <list>
+                                    <field name="internal_label"/>
+                                    <field name="recurrence"/>
+                                    <field name="date_from"/>
+                                    <field name="date_to"/>
+                                    <field name="min_pax"/>
+                                    <field name="max_pax"/>
+                                    <field name="capacity"/>
                                 </list>
                             </field>
                         </page>
@@ -109,19 +191,6 @@
                                 <field name="extra_ids" widget="many2many_tags"/>
                                 <field name="question_ids" widget="many2many_tags"/>
                             </group>
-                        </page>
-                        <page string="Availability" name="availability">
-                            <field name="availability_rule_ids">
-                                <list>
-                                    <field name="internal_label"/>
-                                    <field name="recurrence"/>
-                                    <field name="date_from"/>
-                                    <field name="date_to"/>
-                                    <field name="min_pax"/>
-                                    <field name="max_pax"/>
-                                    <field name="capacity"/>
-                                </list>
-                            </field>
                         </page>
                         <page string="Gallery" name="gallery">
                             <field name="image_ids">
@@ -161,7 +230,8 @@
     <record id="tour_tour_action" model="ir.actions.act_window">
         <field name="name">Tours</field>
         <field name="res_model">tour.tour</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="target">current</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Create your first tour</p>
             <p>

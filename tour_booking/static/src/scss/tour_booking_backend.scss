@@ -1,0 +1,27 @@
+// Back office only. The kanban card leads with the tour's photograph, so the
+// Tours menu reads as a catalogue rather than a spreadsheet.
+
+.o_kanban_record {
+    .o_tour_kanban_image {
+        height: 10rem;
+        overflow: hidden;
+        border-radius: .25rem .25rem 0 0;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    // A tour with no photograph yet should still line up with the ones that
+    // have, rather than collapsing the card to half height.
+    .o_tour_kanban_placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        background-color: var(--o-gray-100, #f1f3f5);
+        color: var(--o-gray-500, #adb5bd);
+    }
+}

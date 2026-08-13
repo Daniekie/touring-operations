@@ -68,7 +68,7 @@
                 <field name="price_basis"/>
                 <field name="is_taxable"/>
                 <field name="max_quantity"/>
-                <field name="tour_ids" widget="many2many_tags"/>
+                <field name="tour_ids" widget="many2many_tags" options="{'no_create': True}"/>
             </list>
         </field>
     </record>
@@ -95,7 +95,7 @@
                 <field name="field_type"/>
                 <field name="scope"/>
                 <field name="required"/>
-                <field name="tour_ids" widget="many2many_tags"/>
+                <field name="tour_ids" widget="many2many_tags" options="{'no_create': True}"/>
             </list>
         </field>
     </record>
@@ -117,7 +117,7 @@
                             <field name="required"/>
                         </group>
                         <group>
-                            <field name="tour_ids" widget="many2many_tags"/>
+                            <field name="tour_ids" widget="many2many_tags" options="{'no_create': True}"/>
                             <field name="active" widget="boolean_toggle"/>
                         </group>
                     </group>
@@ -144,7 +144,7 @@
         <field name="arch" type="xml">
             <list string="Cancellation Policies">
                 <field name="name"/>
-                <field name="tour_ids" widget="many2many_tags"/>
+                <field name="tour_ids" widget="many2many_tags" options="{'no_create': True}"/>
             </list>
         </field>
     </record>

@@ -1,3 +1,5 @@
+from . import res_company
+from . import res_config_settings
 from . import tour_location
 from . import tour_cancellation_policy
 from . import tour_tour

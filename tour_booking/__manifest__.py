@@ -44,6 +44,7 @@ There is deliberately no channel synchronisation with any OTA.
         "views/tour_departure_views.xml",
         "views/tour_booking_views.xml",
         "views/tour_booking_menus.xml",
+        "views/res_config_settings_views.xml",
         "views/website_templates.xml",
         # After website_templates: the checkout reuses the summary card and the
         # confirmation page links back to the tour page declared there.
@@ -53,6 +54,9 @@ There is deliberately no channel synchronisation with any OTA.
         "demo/tour_demo.xml",
     ],
     "assets": {
+        "web.assets_backend": [
+            "tour_booking/static/src/scss/tour_booking_backend.scss",
+        ],
         # Frontend only: none of this runs in the back office, and loading it
         # into the web client would cost every internal user the download.
         "web.assets_frontend": [

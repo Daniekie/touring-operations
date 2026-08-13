@@ -16,6 +16,10 @@ class TourCase(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
 
+        # The timezone lives on the company, not the tour. Amsterdam because
+        # the generation tests need somewhere that actually observes DST.
+        cls.env.company.tour_tz = "Europe/Amsterdam"
+
         cls.partner = cls.env["res.partner"].create({"name": "Test Guest"})
         cls.other_partner = cls.env["res.partner"].create({"name": "Second Guest"})
 
@@ -25,7 +29,6 @@ class TourCase(TransactionCase):
             "default_capacity": 10,
             "booking_cutoff_hours": 24,
             "has_specific_time": True,
-            "tz": "Europe/Amsterdam",
             "price_per_person": 50.0,
             "start_time_ids": [
                 (0, 0, {"time_of_day": 9.0}),

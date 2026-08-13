@@ -117,6 +117,41 @@ class TestAvailability(TourCase):
             "Summer time: 09:00 in Amsterdam is 07:00 UTC.",
         )
 
+    def test_the_timezone_comes_from_the_company_not_the_tour(self):
+        """One operator, one timezone, asked once.
+
+        It was a required field on every tour, which was the same question over
+        and over with a fresh chance to answer it wrong each time — and for a
+        field that decides what time a boat leaves, wrong means guests on a dock
+        at the wrong hour.
+        """
+        self.env.company.tour_tz = "America/Kralendijk"
+        rule = self._rule(recurrence="one_off", date_to=self.monday)
+
+        departures = self._generate(rule)
+
+        self.assertEqual(self.tour.tz, "America/Kralendijk")
+        self.assertEqual(
+            departures[0].start_datetime, datetime(2027, 3, 1, 13, 0),
+            "09:00 on Bonaire is 13:00 UTC; the company setting must drive it.",
+        )
+
+    def test_changing_the_company_timezone_moves_future_generation(self):
+        """Departures already generated keep the time they were sold at — the
+        generator never rewrites an existing row — but new ones follow the new
+        setting."""
+        self.env.company.tour_tz = "America/Kralendijk"
+        first = self._generate(self._rule(recurrence="one_off", date_to=self.monday))
+
+        self.env.company.tour_tz = "Europe/Amsterdam"
+        later = self.monday + timedelta(days=7)
+        second = self._generate(
+            self._rule(recurrence="one_off", date_from=later, date_to=later), later
+        )
+
+        self.assertEqual(first[0].start_datetime, datetime(2027, 3, 1, 13, 0))
+        self.assertEqual(second[0].start_datetime, datetime(2027, 3, 8, 8, 0))
+
     def test_a_rule_with_no_end_date_generates_up_to_the_horizon(self):
         rule = self._rule(date_to=False)
 
