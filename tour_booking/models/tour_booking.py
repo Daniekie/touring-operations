@@ -31,6 +31,8 @@ class TourBooking(models.Model):
     tour_id = fields.Many2one(related="departure_id.tour_id", store=True, index=True)
     start_datetime = fields.Datetime(related="departure_id.start_datetime", store=True)
     partner_id = fields.Many2one("res.partner", string="Guest", required=True, index=True)
+    partner_email = fields.Char(related="partner_id.email", string="Email", readonly=True)
+    partner_phone = fields.Char(related="partner_id.phone", string="Phone", readonly=True)
     company_id = fields.Many2one(related="departure_id.company_id", store=True)
     currency_id = fields.Many2one(related="departure_id.currency_id")
 

@@ -34,12 +34,13 @@
                 <field name="location_id"/>
                 <templates>
                     <t t-name="card" class="p-0">
-                        <!-- `kanban_image` serves Odoo's own placeholder when
-                             the field is empty, so this needs no fallback and
-                             no reference to the raw binary. -->
+                        <!-- The image widget, not a hand-built <img>. Odoo 19
+                             no longer exposes `kanban_image` to the template
+                             context, and the widget serves the placeholder for
+                             an empty field anyway. -->
                         <div class="o_tour_kanban_image">
-                            <img t-att-src="kanban_image('tour.tour', 'image_1920', record.id.raw_value)"
-                                 t-att-alt="record.name.value"/>
+                            <field name="image_1920" widget="image"
+                                   options="{'size': [400, 260], 'img_class': 'w-100 h-100 object-fit-cover'}"/>
                         </div>
                         <div class="p-2">
                             <div class="d-flex justify-content-between align-items-start">
@@ -231,8 +232,15 @@
         </field>
     </record>
 
+    <record id="tour_tour_new_action" model="ir.actions.act_window">
+        <field name="name">New Experience</field>
+        <field name="res_model">tour.tour</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
     <record id="tour_tour_action" model="ir.actions.act_window">
-        <field name="name">Tours</field>
+        <field name="name">Experiences</field>
         <field name="res_model">tour.tour</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="target">current</field>

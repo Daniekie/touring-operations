@@ -17,11 +17,21 @@ from odoo.tests.common import HttpCase
 class TestBackendUI(HttpCase):
 
     def test_the_tours_kanban_renders(self):
-        """The exact bug this file exists for: a card reaching through
-        `record.` for a field the view never declared."""
+        """The exact bug this file exists for: a card that throws on render.
+
+        The `ready` gate is the whole test. Without one the code runs the
+        instant the page loads, before the view has drawn anything, and passes
+        whatever happens next — which is how a broken kanban shipped twice.
+        """
         self.browser_js(
             "/odoo/action-tour_booking.tour_tour_action",
-            "console.log('test successful')",
+            """
+            if (!document.querySelector(".o_kanban_record")) {
+                throw new Error("The Experiences kanban drew no cards.");
+            }
+            console.log('test successful');
+            """,
+            ready="!!document.querySelector('.o_kanban_record')",
             login="admin",
             timeout=90,
         )
@@ -44,10 +54,50 @@ class TestBackendUI(HttpCase):
             timeout=90,
         )
 
+    def test_the_passenger_list_renders(self):
+        self.browser_js(
+            "/odoo/action-tour_booking.tour_passenger_action",
+            "console.log('test successful')",
+            ready="!!document.querySelector('.o_list_view')",
+            login="admin",
+            timeout=90,
+        )
+
+    def test_placing_a_booking_opens_a_usable_form(self):
+        """The menu entry drops straight onto a new booking form, so a broken
+        default or a missing field shows up here rather than at the counter."""
+        self.browser_js(
+            "/odoo/action-tour_booking.tour_booking_new_action",
+            """
+            if (!document.querySelector(".o_form_view")) {
+                throw new Error("Place a Booking did not open a form.");
+            }
+            console.log('test successful');
+            """,
+            ready="!!document.querySelector('.o_form_view')",
+            login="admin",
+            timeout=90,
+        )
+
+    def test_creating_an_experience_opens_a_usable_form(self):
+        self.browser_js(
+            "/odoo/action-tour_booking.tour_tour_new_action",
+            """
+            if (!document.querySelector(".o_form_view")) {
+                throw new Error("New Experience did not open a form.");
+            }
+            console.log('test successful');
+            """,
+            ready="!!document.querySelector('.o_form_view')",
+            login="admin",
+            timeout=90,
+        )
+
     def test_the_bookings_list_renders(self):
         self.browser_js(
             "/odoo/action-tour_booking.tour_booking_action",
             "console.log('test successful')",
+            ready="!!document.querySelector('.o_list_view')",
             login="admin",
             timeout=90,
         )

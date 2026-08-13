@@ -13,7 +13,7 @@ class TourTour(models.Model):
     """
 
     _name = "tour.tour"
-    _description = "Tour"
+    _description = "Experience"
     _inherit = ["mail.thread", "website.seo.metadata", "website.published.mixin"]
     _order = "sequence, name"
 

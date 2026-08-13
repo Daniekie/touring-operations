@@ -112,8 +112,9 @@
         <field name="model">tour.booking</field>
         <field name="arch" type="xml">
             <search string="Bookings">
-                <field name="name"/>
-                <field name="partner_id"/>
+                <field name="name" string="Reference"/>
+                <field name="partner_id" string="Guest"
+                       filter_domain="['|', '|', ('partner_id', 'ilike', self), ('partner_email', 'ilike', self), ('partner_phone', 'ilike', self)]"/>
                 <field name="tour_id"/>
                 <field name="departure_id"/>
                 <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
@@ -122,14 +123,64 @@
                 <separator/>
                 <filter name="upcoming" string="Upcoming"
                         domain="[('start_datetime', '&gt;=', datetime.datetime.now())]"/>
+                <filter name="past" string="Past"
+                        domain="[('start_datetime', '&lt;', datetime.datetime.now())]"/>
+                <filter name="today" string="Today"
+                        domain="[('start_datetime', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0))),
+                                 ('start_datetime', '&lt;=', datetime.datetime.combine(context_today(), datetime.time(23,59,59)))]"/>
                 <group name="group_by">
-                    <filter name="group_tour" string="Tour" context="{'group_by': 'tour_id'}"/>
-                    <filter name="group_departure" string="Departure"
+                    <filter name="group_tour" string="Experience" context="{'group_by': 'tour_id'}"/>
+                    <filter name="group_departure" string="Trip"
                             context="{'group_by': 'departure_id'}"/>
                     <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
                 </group>
             </search>
         </field>
+    </record>
+
+    <!-- The manifest: who is actually on each trip, with the contact details
+         you would need to reach them. Grouped by trip because that is the unit
+         a skipper reads. -->
+    <record id="tour_passenger_view_list" model="ir.ui.view">
+        <field name="name">tour.booking.passengers</field>
+        <field name="model">tour.booking</field>
+        <field name="arch" type="xml">
+            <list string="Passenger List" create="0">
+                <field name="start_datetime" string="Departs"/>
+                <field name="tour_id"/>
+                <field name="partner_id" string="Guest"/>
+                <field name="pax" sum="Passengers"/>
+                <field name="partner_phone"/>
+                <field name="partner_email"/>
+                <field name="name" string="Reference" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'confirmed'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="tour_passenger_action" model="ir.actions.act_window">
+        <field name="name">Passenger List</field>
+        <field name="res_model">tour.booking</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="tour_passenger_view_list"/>
+        <field name="domain">[('state', '=', 'confirmed')]</field>
+        <field name="context">{'search_default_upcoming': 1, 'search_default_group_departure': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nobody booked yet</p>
+            <p>
+                Confirmed guests, grouped by the trip they are on — the list you
+                take to the dock. Drafts and cancellations are left out.
+            </p>
+        </field>
+    </record>
+
+    <record id="tour_booking_new_action" model="ir.actions.act_window">
+        <field name="name">Place a Booking</field>
+        <field name="res_model">tour.booking</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{'form_view_initial_mode': 'edit'}</field>
     </record>
 
     <record id="tour_booking_action" model="ir.actions.act_window">
