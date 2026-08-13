@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!--
+        Three things the operator actually does, in the order they do them:
+
+          Bookings  — who is coming. The daily work, so it lands here.
+          Calendar  — when the trips run and how many seats are left on each.
+          My Tours  — what is on sale.
+
+        Everything that is set up once and rarely touched lives under
+        Configuration, which is where every other Odoo app keeps it.
+    -->
+
     <menuitem id="menu_tour_booking_root" name="Tours"
               web_icon="tour_booking,static/description/icon.png"
               sequence="45"
@@ -11,54 +22,55 @@
               action="tour_booking_action"
               sequence="10"/>
 
-    <menuitem id="menu_tour_departures" name="Departures"
+    <menuitem id="menu_tour_departures" name="Calendar"
               parent="menu_tour_booking_root"
               action="tour_departure_action"
               sequence="20"/>
 
-    <menuitem id="menu_tour_catalogue" name="Catalogue"
+    <menuitem id="menu_tour_tours" name="My Tours"
               parent="menu_tour_booking_root"
+              action="tour_tour_action"
               sequence="30"
               groups="tour_booking.group_tour_manager"/>
-
-    <menuitem id="menu_tour_tours" name="Tours"
-              parent="menu_tour_catalogue"
-              action="tour_tour_action"
-              sequence="10"/>
-
-    <menuitem id="menu_tour_availability" name="Availability"
-              parent="menu_tour_catalogue"
-              action="tour_availability_rule_action"
-              sequence="20"/>
-
-    <menuitem id="menu_tour_generate" name="Generate Departures"
-              parent="menu_tour_catalogue"
-              action="action_generate_departures"
-              sequence="30"/>
 
     <menuitem id="menu_tour_config" name="Configuration"
               parent="menu_tour_booking_root"
               sequence="90"
               groups="tour_booking.group_tour_manager"/>
 
-    <menuitem id="menu_tour_locations" name="Locations"
+    <menuitem id="menu_tour_settings" name="Settings"
+              parent="menu_tour_config"
+              action="base_setup.action_general_configuration"
+              sequence="5"/>
+
+    <menuitem id="menu_tour_availability" name="Availability Rules"
+              parent="menu_tour_config"
+              action="tour_availability_rule_action"
+              sequence="10"/>
+
+    <menuitem id="menu_tour_generate" name="Refresh Calendar"
+              parent="menu_tour_config"
+              action="action_generate_departures"
+              sequence="20"/>
+
+    <menuitem id="menu_tour_locations" name="Meeting Points"
               parent="menu_tour_config"
               action="tour_location_action"
-              sequence="10"/>
+              sequence="30"/>
 
     <menuitem id="menu_tour_extras" name="Extras"
               parent="menu_tour_config"
               action="tour_extra_action"
-              sequence="20"/>
+              sequence="40"/>
 
-    <menuitem id="menu_tour_questions" name="Questions"
+    <menuitem id="menu_tour_questions" name="Checkout Questions"
               parent="menu_tour_config"
               action="tour_question_action"
-              sequence="30"/>
+              sequence="50"/>
 
     <menuitem id="menu_tour_policies" name="Cancellation Policies"
               parent="menu_tour_config"
               action="tour_cancellation_policy_action"
-              sequence="40"/>
+              sequence="60"/>
 
 </odoo>

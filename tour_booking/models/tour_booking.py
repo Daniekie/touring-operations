@@ -25,7 +25,8 @@ class TourBooking(models.Model):
 
     name = fields.Char(required=True, copy=False, readonly=True, default="/")
     departure_id = fields.Many2one(
-        "tour.departure", required=True, ondelete="restrict", index=True
+        "tour.departure", string="Trip", required=True, ondelete="restrict",
+        index=True,
     )
     tour_id = fields.Many2one(related="departure_id.tour_id", store=True, index=True)
     start_datetime = fields.Datetime(related="departure_id.start_datetime", store=True)

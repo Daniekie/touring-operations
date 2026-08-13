@@ -137,6 +137,14 @@
         <field name="res_model">tour.booking</field>
         <field name="view_mode">list,form</field>
         <field name="context">{'search_default_upcoming': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No bookings yet</p>
+            <p>
+                One guest, one trip: who is coming, how many of them, what they
+                paid. Several bookings share the same trip until its seats run
+                out — you will find the trips themselves under Calendar.
+            </p>
+        </field>
     </record>
 
 </odoo>

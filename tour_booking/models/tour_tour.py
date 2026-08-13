@@ -171,7 +171,7 @@ class TourTour(models.Model):
         self.ensure_one()
         return {
             "type": "ir.actions.act_window",
-            "name": _("Departures"),
+            "name": _("Calendar"),
             "res_model": "tour.departure",
             "view_mode": "list,calendar,form",
             "domain": [("tour_id", "=", self.id)],

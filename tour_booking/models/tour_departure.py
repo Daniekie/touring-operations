@@ -27,7 +27,7 @@ class TourDeparture(models.Model):
     """
 
     _name = "tour.departure"
-    _description = "Tour Departure"
+    _description = "Scheduled Trip"
     _order = "start_datetime, id"
 
     tour_id = fields.Many2one("tour.tour", required=True, ondelete="cascade", index=True)

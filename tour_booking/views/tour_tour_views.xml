@@ -13,7 +13,7 @@
                 <field name="price_per_person" widget="monetary"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="default_capacity"/>
-                <field name="departure_count" string="Departures"/>
+                <field name="departure_count" string="Scheduled"/>
                 <field name="is_published" widget="boolean_toggle"/>
             </list>
         </field>
@@ -27,16 +27,19 @@
         <field name="model">tour.tour</field>
         <field name="arch" type="xml">
             <kanban class="o_kanban_dashboard">
+                <!-- Every field reached through `record.` in the template has
+                     to be declared here, or it is simply absent from the record
+                     and the card throws on render. -->
                 <field name="currency_id"/>
+                <field name="location_id"/>
                 <templates>
                     <t t-name="card" class="p-0">
+                        <!-- `kanban_image` serves Odoo's own placeholder when
+                             the field is empty, so this needs no fallback and
+                             no reference to the raw binary. -->
                         <div class="o_tour_kanban_image">
-                            <img t-if="record.image_1920.raw_value"
-                                 t-att-src="kanban_image('tour.tour', 'image_1920', record.id.raw_value)"
-                                 alt="Tour"/>
-                            <div t-else="" class="o_tour_kanban_placeholder">
-                                <i class="fa fa-picture-o fa-2x" title="No image"/>
-                            </div>
+                            <img t-att-src="kanban_image('tour.tour', 'image_1920', record.id.raw_value)"
+                                 t-att-alt="record.name.value"/>
                         </div>
                         <div class="p-2">
                             <div class="d-flex justify-content-between align-items-start">
@@ -44,7 +47,8 @@
                                 <field name="is_published" widget="boolean_toggle"/>
                             </div>
                             <div class="text-muted small">
-                                <i class="fa fa-clock-o me-1" title="Duration"/><field name="duration_display"/>
+                                <i class="fa fa-clock-o me-1" title="Duration"/>
+                                <field name="duration_display"/>
                                 <t t-if="record.location_id.value">
                                     <i class="fa fa-map-marker ms-2 me-1" title="Meeting point"/>
                                     <field name="location_id"/>
@@ -53,7 +57,7 @@
                             <div class="d-flex justify-content-between mt-2">
                                 <field name="price_per_person" widget="monetary"/>
                                 <span class="text-muted">
-                                    <field name="departure_count"/> departures
+                                    <field name="departure_count"/> scheduled
                                 </span>
                             </div>
                         </div>
@@ -79,7 +83,7 @@
             <form string="Tour">
                 <header invisible="not id">
                     <button name="action_view_departures" type="object"
-                            string="Departures" class="oe_highlight"/>
+                            string="Calendar" class="oe_highlight"/>
                 </header>
                 <sheet>
                     <!-- `id` has to be on the form for the expressions below to
@@ -90,7 +94,7 @@
                     <div class="oe_button_box" name="button_box" invisible="not id">
                         <button name="action_view_departures" type="object"
                                 class="oe_stat_button" icon="fa-calendar">
-                            <field name="departure_count" widget="statinfo" string="Departures"/>
+                            <field name="departure_count" widget="statinfo" string="Scheduled"/>
                         </button>
                         <button name="action_view_bookings" type="object"
                                 class="oe_stat_button" icon="fa-ticket">
@@ -235,9 +239,13 @@
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Create your first tour</p>
             <p>
-                A tour describes the experience and what it costs. Availability
-                rules then say when it runs, and those generate the departures
-                guests actually book seats on.
+                A tour is what you sell — the sunset cruise, the two-tank dive.
+                It says what the experience is and what it costs, but not when
+                it runs.
+            </p>
+            <p>
+                When it runs comes from its availability rules, which fill in
+                your Calendar. Guests then book a seat on one dated entry there.
             </p>
         </field>
     </record>
