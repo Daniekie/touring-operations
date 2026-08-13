@@ -8,3 +8,6 @@ __pycache__/
 
 # Local Odoo runtime: filestore, sessions and anything else the server writes.
 .odoo-data/
+
+# Scratch space for images on their way into tour_booking/static/demo/.
+incoming/

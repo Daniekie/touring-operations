@@ -1,3 +1,5 @@
+import base64
+
 from datetime import timedelta
 
 from odoo import fields
@@ -5,6 +7,12 @@ from odoo.tests import tagged
 from odoo.tests.common import HttpCase
 
 from .common import TourCase
+
+# A 1x1 GIF. The gallery test is about whether images are rendered at all, not
+# about what is in them, so the smallest valid image does the job.
+IMAGE = base64.b64encode(
+    base64.b64decode("R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==")
+)
 
 
 @tagged("post_install", "-at_install")
@@ -63,6 +71,25 @@ class TestWebsite(HttpCase, TourCase):
         self.assertIn("o_tour_widget", body, "The booking widget is missing.")
         self.assertIn("o_tour_calendar", body, "The calendar is missing.")
         self.assertIn("o_tour_pax", body, "The participant selector is missing.")
+
+    def test_the_tour_page_shows_every_gallery_image(self):
+        """Gallery images that are stored but never rendered are the easy thing
+        to get wrong: nothing errors, the page just quietly lacks them."""
+        for index in range(3):
+            self.env["tour.tour.image"].create({
+                "tour_id": self.tour.id,
+                "name": "Gallery %s" % index,
+                "sequence": index * 10,
+                "image_1920": self.tour.image_1920 or IMAGE,
+            })
+
+        body = self.url_open(self.tour.website_url).text
+
+        self.assertIn("o_tour_gallery", body)
+        self.assertEqual(
+            body.count("/web/image/tour.tour.image/"), 3,
+            "Every gallery image should appear on the page.",
+        )
 
     def test_an_unpublished_tour_page_is_not_found(self):
         self.tour.is_published = False

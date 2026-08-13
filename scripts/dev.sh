@@ -19,8 +19,10 @@ DB="tour_dev"
 if ! psql -lqt | cut -d'|' -f1 | grep -qw "$DB"; then
     echo "Creating $DB and installing tour_booking..."
     createdb "$DB"
+    # Odoo 19 does not load demo data unless told to, and a dev database
+    # without the four demo tours has nothing to click through.
     "$VENV" "$ODOO/odoo-bin" -c "$REPO/odoo.conf" -d "$DB" \
-        -i tour_booking --stop-after-init --log-level=warn
+        -i tour_booking --with-demo --stop-after-init --log-level=warn
 fi
 
 # macOS ships bash 3.2, where `set -u` treats an empty array expansion as an

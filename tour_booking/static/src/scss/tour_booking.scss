@@ -49,6 +49,21 @@
     margin-bottom: .75rem;
 }
 
+// A grid rather than a carousel: every photo is visible at once, it needs no
+// JavaScript, and it degrades to a single column on a phone by itself.
+.o_tour_gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: .5rem;
+
+    img {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        border-radius: .375rem;
+    }
+}
+
 .o_tour_widget {
     top: 1rem;
 

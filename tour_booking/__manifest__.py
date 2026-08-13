@@ -49,6 +49,9 @@ There is deliberately no channel synchronisation with any OTA.
         # confirmation page links back to the tour page declared there.
         "views/website_checkout_templates.xml",
     ],
+    "demo": [
+        "demo/tour_demo.xml",
+    ],
     "assets": {
         # Frontend only: none of this runs in the back office, and loading it
         # into the web client would cost every internal user the download.

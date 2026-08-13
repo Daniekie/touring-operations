@@ -87,6 +87,18 @@
 
                             <div t-field="tour.description" class="mb-4"/>
 
+                            <!-- The gallery sits with the information rather
+                                 than above it: the hero has already done the
+                                 job of selling, and a second wall of images
+                                 before a word of copy just pushes the booking
+                                 widget off the screen. -->
+                            <div t-if="tour.image_ids" class="o_tour_gallery mb-4">
+                                <img t-foreach="tour.image_ids" t-as="image"
+                                     t-attf-src="/web/image/tour.tour.image/#{image.id}/image_1920"
+                                     t-att-alt="image.name or tour.name"
+                                     loading="lazy"/>
+                            </div>
+
                             <div t-if="tour.itinerary_step_ids" class="mb-4">
                                 <h3>Itinerary</h3>
                                 <ol class="o_tour_itinerary">

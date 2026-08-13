@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- A working Bonaire operator: four published tours, each with real
+         availability, so a fresh database has something to click through
+         rather than an empty catalogue. -->
+
+    <!-- ==================== Locations ==================== -->
+
+    <record id="demo_location_marina" model="tour.location">
+        <field name="name">Lobster Marina, Kaya Grandi</field>
+        <field name="street">Kaya Grandi 42</field>
+        <field name="city">Kralendijk</field>
+        <field name="country_id" ref="base.bq"/>
+        <field name="latitude">12.150000</field>
+        <field name="longitude">-68.276000</field>
+        <field name="how_to_get_there" type="html">
+            <div>
+                <p>
+                    We are on the waterfront, two minutes' walk north of the
+                    cruise pier. Look for the red hull tied up at the end of the
+                    dock — that is us.
+                </p>
+                <p>
+                    Free parking is available behind the dive shop. Please
+                    arrive fifteen minutes before departure so we can fit your
+                    gear without rushing.
+                </p>
+            </div>
+        </field>
+    </record>
+
+    <record id="demo_location_dive_shop" model="tour.location">
+        <field name="name">Lobster Dive Shop</field>
+        <field name="street">Kaya Playa Lechi 12</field>
+        <field name="city">Kralendijk</field>
+        <field name="country_id" ref="base.bq"/>
+        <field name="latitude">12.157000</field>
+        <field name="longitude">-68.283000</field>
+        <field name="how_to_get_there" type="html">
+            <div>
+                <p>
+                    The shop is on the coast road, opposite the Playa Lechi
+                    beach entrance. Ask at the counter and someone will walk you
+                    down to the boat.
+                </p>
+            </div>
+        </field>
+    </record>
+
+    <!-- ==================== Cancellation policy ==================== -->
+
+    <record id="demo_policy_standard" model="tour.cancellation.policy">
+        <field name="name">Standard — free up to 48 hours</field>
+        <field name="description" type="html">
+            <div>
+                <p>
+                    Plans change and the weather does what it likes. Cancel at
+                    least two days ahead and you pay nothing.
+                </p>
+                <p>
+                    If <em>we</em> cancel — and on this island that means wind,
+                    swell or sea state — you are refunded in full whenever it
+                    happens.
+                </p>
+            </div>
+        </field>
+        <field name="rule_ids" eval="[
+            (0, 0, {'hours_before': 48, 'refund_percent': 100.0}),
+            (0, 0, {'hours_before': 24, 'refund_percent': 50.0}),
+        ]"/>
+    </record>
+
+    <!-- ==================== Extras ==================== -->
+
+    <record id="demo_extra_wetsuit" model="tour.extra">
+        <field name="name">Wetsuit hire (3mm shorty)</field>
+        <field name="description">The water is warm, but three hours in it is still three hours.</field>
+        <field name="price">12.0</field>
+        <field name="price_basis">per_person</field>
+        <field name="is_taxable" eval="True"/>
+    </record>
+
+    <record id="demo_extra_snorkel" model="tour.extra">
+        <field name="name">Snorkel set</field>
+        <field name="description">Mask, snorkel and fins in your size.</field>
+        <field name="price">8.0</field>
+        <field name="price_basis">per_person</field>
+        <field name="is_taxable" eval="True"/>
+    </record>
+
+    <record id="demo_extra_pickup" model="tour.extra">
+        <field name="name">Hotel pickup</field>
+        <field name="description">
+            We collect the whole party from your hotel and bring you back. One
+            van, one price, however many of you there are.
+        </field>
+        <field name="price">25.0</field>
+        <field name="price_basis">per_booking</field>
+        <field name="is_taxable" eval="False"/>
+        <field name="max_quantity">1</field>
+    </record>
+
+    <record id="demo_extra_gopro" model="tour.extra">
+        <field name="name">GoPro rental</field>
+        <field name="description">Camera, mount and SD card. We copy the footage to you afterwards.</field>
+        <field name="price">20.0</field>
+        <field name="price_basis">per_person</field>
+        <field name="is_taxable" eval="True"/>
+        <field name="max_quantity">2</field>
+    </record>
+
+    <!-- ==================== Questions ==================== -->
+
+    <record id="demo_question_shoe_size" model="tour.question">
+        <field name="name">Shoe size (for fins)</field>
+        <field name="field_type">text</field>
+        <field name="scope">per_person</field>
+        <field name="required" eval="True"/>
+    </record>
+
+    <record id="demo_question_certification" model="tour.question">
+        <field name="name">Highest diving certification</field>
+        <field name="field_type">select</field>
+        <field name="scope">per_person</field>
+        <field name="required" eval="True"/>
+        <field name="answer_options">Open Water
+Advanced Open Water
+Rescue Diver
+Divemaster
+Instructor</field>
+    </record>
+
+    <record id="demo_question_hotel" model="tour.question">
+        <field name="name">Which hotel are you staying at?</field>
+        <field name="field_type">text</field>
+        <field name="scope">per_booking</field>
+        <field name="required" eval="False"/>
+    </record>
+
+    <record id="demo_question_swimmer" model="tour.question">
+        <field name="name">Is everyone in your party a confident swimmer?</field>
+        <field name="field_type">bool</field>
+        <field name="scope">per_booking</field>
+        <field name="required" eval="False"/>
+    </record>
+
+    <!-- ==================== Tours ==================== -->
+
+    <record id="demo_tour_sunset" model="tour.tour">
+        <field name="name">Lobster Sunset Tour</field>
+        <field name="sequence">10</field>
+        <field name="is_published" eval="True"/>
+        <field name="duration_hours">2.0</field>
+        <field name="default_capacity">20</field>
+        <field name="booking_cutoff_hours">4</field>
+        <field name="has_specific_time" eval="True"/>
+        <field name="tz">America/Kralendijk</field>
+        <field name="price_per_person">65.0</field>
+        <field name="location_id" ref="demo_location_marina"/>
+        <field name="meeting_point_note">Come to the dock, not the shop — the boat leaves on time for the light.</field>
+        <field name="cancellation_policy_id" ref="demo_policy_standard"/>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/pier_turquoise.jpg"/>
+        <field name="description" type="html">
+            <div>
+                <p>
+                    Two hours on the water as the light goes. We leave the
+                    marina, run down the leeward coast with Klein Bonaire on the
+                    beam, and cut the engine somewhere quiet to watch the sun
+                    drop into the sea.
+                </p>
+                <p>
+                    Rum punch and a soft drink are included, and there is
+                    usually someone on board who will tell you the green flash
+                    is real. It is, occasionally.
+                </p>
+            </div>
+        </field>
+        <field name="inclusions" type="html">
+            <ul>
+                <li>Two hours aboard with a local skipper</li>
+                <li>Rum punch, soft drinks and water</li>
+                <li>Fresh fruit and local snacks</li>
+                <li>Life jackets for all ages</li>
+            </ul>
+        </field>
+        <field name="exclusions" type="html">
+            <ul>
+                <li>Hotel transfers, unless you add pickup</li>
+                <li>Dinner afterwards</li>
+                <li>Gratuities</li>
+            </ul>
+        </field>
+        <field name="know_before_you_go" type="html">
+            <div>
+                <p>
+                    The boat sails whatever the forecast says about clouds, and
+                    a grey sunset is still a good evening on the water. We only
+                    cancel for wind and sea state, and if we do you are refunded
+                    in full.
+                </p>
+                <p>Children are welcome. Under-fives travel free but still need a seat booked.</p>
+            </div>
+        </field>
+        <field name="what_to_bring" type="html">
+            <ul>
+                <li>A light layer — it cools off quickly once the sun is down</li>
+                <li>Flat shoes or bare feet, no heels on deck</li>
+                <li>A camera</li>
+            </ul>
+        </field>
+        <field name="start_time_ids" eval="[(0, 0, {'time_of_day': 17.5})]"/>
+        <field name="extra_ids" eval="[(6, 0, [ref('demo_extra_pickup'), ref('demo_extra_gopro')])]"/>
+        <field name="question_ids" eval="[(6, 0, [ref('demo_question_hotel')])]"/>
+        <field name="itinerary_step_ids" eval="[
+            (0, 0, {'sequence': 10, 'name': 'Board at Lobster Marina', 'duration_minutes': 15,
+                    'description': 'Safety briefing, drinks poured, lines off.'}),
+            (0, 0, {'sequence': 20, 'name': 'Run down the leeward coast', 'duration_minutes': 45,
+                    'description': 'Past Klein Bonaire with the island on your right.'}),
+            (0, 0, {'sequence': 30, 'name': 'Anchor for sunset', 'duration_minutes': 45,
+                    'description': 'Engine off, glass in hand, the whole point of the trip.'}),
+            (0, 0, {'sequence': 40, 'name': 'Back to the marina', 'duration_minutes': 15,
+                    'description': 'Alongside by dusk.'}),
+        ]"/>
+    </record>
+
+    <record id="demo_tour_scuba" model="tour.tour">
+        <field name="name">Lobster Scuba Trip</field>
+        <field name="sequence">20</field>
+        <field name="is_published" eval="True"/>
+        <field name="duration_hours">4.0</field>
+        <field name="default_capacity">8</field>
+        <field name="booking_cutoff_hours">24</field>
+        <field name="has_specific_time" eval="True"/>
+        <field name="tz">America/Kralendijk</field>
+        <field name="price_per_person">110.0</field>
+        <field name="location_id" ref="demo_location_dive_shop"/>
+        <field name="meeting_point_note">Ask for Marco at the counter — bring your certification card.</field>
+        <field name="cancellation_policy_id" ref="demo_policy_standard"/>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/diver_reef.jpg"/>
+        <field name="description" type="html">
+            <div>
+                <p>
+                    A two-tank boat dive on Bonaire's west coast, with a surface
+                    interval long enough to be worth having. Sites are chosen on
+                    the morning for conditions and for what the group can
+                    actually enjoy.
+                </p>
+                <p>
+                    Small groups: eight divers and two guides, never more. If
+                    you have not been in the water for a while, say so when you
+                    book and we will put you with the guide who is not in a
+                    hurry.
+                </p>
+            </div>
+        </field>
+        <field name="inclusions" type="html">
+            <ul>
+                <li>Two boat dives with a certified guide</li>
+                <li>Tanks, weights and belt</li>
+                <li>Marine park tag for the day</li>
+                <li>Fruit and water between dives</li>
+            </ul>
+        </field>
+        <field name="exclusions" type="html">
+            <ul>
+                <li>BCD, regulator and computer — rentable at the shop</li>
+                <li>Wetsuit, unless you add one</li>
+                <li>Certification courses</li>
+            </ul>
+        </field>
+        <field name="know_before_you_go" type="html">
+            <div>
+                <p>
+                    You must be certified and bring your card. If your last dive
+                    was more than a year ago we will ask you to do a refresher
+                    first — this is not negotiable, and it is a better morning
+                    for everybody.
+                </p>
+                <p>
+                    No flying within eighteen hours of your last dive. Plan your
+                    departure day accordingly.
+                </p>
+            </div>
+        </field>
+        <field name="what_to_bring" type="html">
+            <ul>
+                <li>Certification card and logbook</li>
+                <li>Swimwear and a towel</li>
+                <li>Reef-safe sunscreen only</li>
+                <li>Your own mask, if you are fussy about fit</li>
+            </ul>
+        </field>
+        <field name="start_time_ids" eval="[
+            (0, 0, {'time_of_day': 9.0}),
+            (0, 0, {'time_of_day': 13.5}),
+        ]"/>
+        <field name="extra_ids" eval="[(6, 0, [
+            ref('demo_extra_wetsuit'), ref('demo_extra_pickup'), ref('demo_extra_gopro'),
+        ])]"/>
+        <field name="question_ids" eval="[(6, 0, [
+            ref('demo_question_certification'), ref('demo_question_shoe_size'),
+            ref('demo_question_hotel'),
+        ])]"/>
+        <field name="itinerary_step_ids" eval="[
+            (0, 0, {'sequence': 10, 'name': 'Kit up at the shop', 'duration_minutes': 30,
+                    'description': 'Paperwork, gear check, briefing.'}),
+            (0, 0, {'sequence': 20, 'name': 'First dive', 'duration_minutes': 50,
+                    'description': 'Typically a drop-off site — reef on one side, blue on the other.'}),
+            (0, 0, {'sequence': 30, 'name': 'Surface interval', 'duration_minutes': 60,
+                    'description': 'Fruit, water, and the obligatory arguing about what that fish was.'}),
+            (0, 0, {'sequence': 40, 'name': 'Second dive', 'duration_minutes': 50,
+                    'description': 'Shallower, longer, usually the one people remember.'}),
+        ]"/>
+    </record>
+
+    <record id="demo_tour_sailing" model="tour.tour">
+        <field name="name">Lobster Sailing</field>
+        <field name="sequence">30</field>
+        <field name="is_published" eval="True"/>
+        <field name="duration_hours">3.5</field>
+        <field name="default_capacity">12</field>
+        <field name="booking_cutoff_hours">12</field>
+        <field name="has_specific_time" eval="True"/>
+        <field name="tz">America/Kralendijk</field>
+        <field name="price_per_person">95.0</field>
+        <field name="location_id" ref="demo_location_marina"/>
+        <field name="cancellation_policy_id" ref="demo_policy_standard"/>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/boats_cliff.jpg"/>
+        <field name="description" type="html">
+            <div>
+                <p>
+                    Half a day under sail on the lee side of the island, on a
+                    boat that is actually sailed rather than motored with the
+                    canvas up for the photographs.
+                </p>
+                <p>
+                    Take the helm if you want to, or sit on the rail and do
+                    nothing at all. Both are the correct way to spend a morning
+                    on Bonaire.
+                </p>
+            </div>
+        </field>
+        <field name="inclusions" type="html">
+            <ul>
+                <li>Three and a half hours under sail with a skipper and mate</li>
+                <li>Lunch aboard and cold drinks</li>
+                <li>A swim stop in flat water</li>
+                <li>Snorkel gear if you want it</li>
+            </ul>
+        </field>
+        <field name="exclusions" type="html">
+            <ul>
+                <li>Hotel transfers, unless you add pickup</li>
+                <li>Alcohol beyond the one included drink</li>
+            </ul>
+        </field>
+        <field name="know_before_you_go" type="html">
+            <div>
+                <p>
+                    We sail in the morning because that is when the wind is
+                    civil. If the forecast turns we move you to another day
+                    rather than take you out in something unpleasant.
+                </p>
+                <p>Seasickness is rare on the lee side, but bring tablets if you know you need them.</p>
+            </div>
+        </field>
+        <field name="what_to_bring" type="html">
+            <ul>
+                <li>Soft-soled shoes or bare feet</li>
+                <li>Hat, sunglasses and reef-safe sunscreen</li>
+                <li>A dry bag for anything that must not get wet</li>
+            </ul>
+        </field>
+        <field name="start_time_ids" eval="[(0, 0, {'time_of_day': 10.0})]"/>
+        <field name="extra_ids" eval="[(6, 0, [ref('demo_extra_snorkel'), ref('demo_extra_pickup')])]"/>
+        <field name="question_ids" eval="[(6, 0, [
+            ref('demo_question_swimmer'), ref('demo_question_hotel'),
+        ])]"/>
+        <field name="itinerary_step_ids" eval="[
+            (0, 0, {'sequence': 10, 'name': 'Board and brief', 'duration_minutes': 20,
+                    'description': 'Where to sit, what not to grab, where the heads are.'}),
+            (0, 0, {'sequence': 20, 'name': 'Sail south', 'duration_minutes': 80,
+                    'description': 'Sails up outside the harbour, engine off.'}),
+            (0, 0, {'sequence': 30, 'name': 'Swim stop and lunch', 'duration_minutes': 70,
+                    'description': 'Anchored somewhere flat and clear.'}),
+            (0, 0, {'sequence': 40, 'name': 'Sail home', 'duration_minutes': 40,
+                    'description': 'Downwind, which is the easy bit.'}),
+        ]"/>
+    </record>
+
+    <record id="demo_tour_klein" model="tour.tour">
+        <field name="name">Lobster Klein Bonaire Trip</field>
+        <field name="sequence">40</field>
+        <field name="is_published" eval="True"/>
+        <field name="duration_hours">5.0</field>
+        <field name="default_capacity">16</field>
+        <field name="booking_cutoff_hours">12</field>
+        <field name="has_specific_time" eval="True"/>
+        <field name="tz">America/Kralendijk</field>
+        <field name="price_per_person">85.0</field>
+        <field name="location_id" ref="demo_location_marina"/>
+        <field name="meeting_point_note">There is no shade and no shop on Klein Bonaire. Bring what you need.</field>
+        <field name="cancellation_policy_id" ref="demo_policy_standard"/>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/boat_white_sand.jpg"/>
+        <field name="description" type="html">
+            <div>
+                <p>
+                    A full morning on the uninhabited island off Kralendijk:
+                    white sand, no buildings, no roads, and some of the easiest
+                    snorkelling anywhere in the Caribbean straight off the beach.
+                </p>
+                <p>
+                    We anchor at No Name Beach, put out the snorkel gear, and
+                    leave you to it. Turtles are common enough that we have
+                    stopped promising them and started expecting them.
+                </p>
+            </div>
+        </field>
+        <field name="inclusions" type="html">
+            <ul>
+                <li>Return boat transfer to Klein Bonaire</li>
+                <li>Snorkel gear and a flotation belt</li>
+                <li>Lunch, fruit and cold drinks</li>
+                <li>Marine park tag for the day</li>
+                <li>A guided snorkel for anyone who wants one</li>
+            </ul>
+        </field>
+        <field name="exclusions" type="html">
+            <ul>
+                <li>Hotel transfers, unless you add pickup</li>
+                <li>Scuba diving — see the Scuba Trip</li>
+            </ul>
+        </field>
+        <field name="know_before_you_go" type="html">
+            <div>
+                <p>
+                    Klein Bonaire is a nature reserve. Nothing comes off the
+                    island, nothing goes into the water but you, and standing on
+                    coral is the one thing that will get you spoken to sharply.
+                </p>
+                <p>
+                    There is no shade beyond what we bring and no facilities of
+                    any kind, so plan for five hours of sun.
+                </p>
+            </div>
+        </field>
+        <field name="what_to_bring" type="html">
+            <ul>
+                <li>Reef-safe sunscreen — the ordinary kind is banned here</li>
+                <li>Hat, sunglasses, a rash vest for the water</li>
+                <li>Towel and a change of clothes</li>
+                <li>More water than you think</li>
+            </ul>
+        </field>
+        <field name="start_time_ids" eval="[(0, 0, {'time_of_day': 9.5})]"/>
+        <field name="extra_ids" eval="[(6, 0, [
+            ref('demo_extra_snorkel'), ref('demo_extra_wetsuit'), ref('demo_extra_pickup'),
+        ])]"/>
+        <field name="question_ids" eval="[(6, 0, [
+            ref('demo_question_swimmer'), ref('demo_question_shoe_size'),
+            ref('demo_question_hotel'),
+        ])]"/>
+        <field name="itinerary_step_ids" eval="[
+            (0, 0, {'sequence': 10, 'name': 'Depart Lobster Marina', 'duration_minutes': 20,
+                    'description': 'Twenty minutes across the channel.'}),
+            (0, 0, {'sequence': 20, 'name': 'No Name Beach', 'duration_minutes': 180,
+                    'description': 'Snorkel, swim, or lie there. Guided snorkel leaves twice.'}),
+            (0, 0, {'sequence': 30, 'name': 'Lunch aboard', 'duration_minutes': 60,
+                    'description': 'Served at anchor.'}),
+            (0, 0, {'sequence': 40, 'name': 'Back to Kralendijk', 'duration_minutes': 20,
+                    'description': 'Alongside early afternoon.'}),
+        ]"/>
+    </record>
+
+    <!-- ==================== Availability ==================== -->
+    <!-- Open-ended on purpose: no `date_to`, so the generator keeps these
+         tours bookable a year out however long the demo database lives.
+         A fixed end date would quietly empty the catalogue one day. -->
+
+    <record id="demo_rule_sunset" model="tour.availability.rule">
+        <field name="tour_id" ref="demo_tour_sunset"/>
+        <field name="internal_label">Sunset — every evening</field>
+        <field name="date_from" eval="(DateTime.today()).strftime('%Y-%m-%d')"/>
+        <field name="recurrence">daily</field>
+        <field name="min_pax">1</field>
+        <field name="max_pax">8</field>
+    </record>
+
+    <record id="demo_rule_scuba" model="tour.availability.rule">
+        <field name="tour_id" ref="demo_tour_scuba"/>
+        <field name="internal_label">Diving — Tuesday to Saturday</field>
+        <field name="date_from" eval="(DateTime.today()).strftime('%Y-%m-%d')"/>
+        <field name="recurrence">weekly</field>
+        <field name="tue" eval="True"/>
+        <field name="wed" eval="True"/>
+        <field name="thu" eval="True"/>
+        <field name="fri" eval="True"/>
+        <field name="sat" eval="True"/>
+        <field name="min_pax">1</field>
+        <field name="max_pax">4</field>
+    </record>
+
+    <record id="demo_rule_sailing" model="tour.availability.rule">
+        <field name="tour_id" ref="demo_tour_sailing"/>
+        <field name="internal_label">Sailing — Wednesdays and weekends</field>
+        <field name="date_from" eval="(DateTime.today()).strftime('%Y-%m-%d')"/>
+        <field name="recurrence">weekly</field>
+        <field name="wed" eval="True"/>
+        <field name="sat" eval="True"/>
+        <field name="sun" eval="True"/>
+        <field name="min_pax">2</field>
+        <field name="max_pax">6</field>
+    </record>
+
+    <record id="demo_rule_klein" model="tour.availability.rule">
+        <field name="tour_id" ref="demo_tour_klein"/>
+        <field name="internal_label">Klein Bonaire — Monday, Thursday, Saturday</field>
+        <field name="date_from" eval="(DateTime.today()).strftime('%Y-%m-%d')"/>
+        <field name="recurrence">weekly</field>
+        <field name="mon" eval="True"/>
+        <field name="thu" eval="True"/>
+        <field name="sat" eval="True"/>
+        <field name="min_pax">1</field>
+        <field name="max_pax">8</field>
+    </record>
+
+
+    <!-- ==================== Galleries ==================== -->
+    <!-- One main image each, plus every other photo behind it in a
+         different order per tour, so the grids do not all look alike. -->
+
+    <record id="demo_image_sunset_1" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sunset"/>
+        <field name="name">The Kralendijk waterfront</field>
+        <field name="sequence">10</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/kralendijk_waterfront.jpg"/>
+    </record>
+
+    <record id="demo_image_sunset_2" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sunset"/>
+        <field name="name">Beaching at No Name Beach</field>
+        <field name="sequence">20</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/boat_white_sand.jpg"/>
+    </record>
+
+    <record id="demo_image_sunset_3" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sunset"/>
+        <field name="name">Divers on the safety stop</field>
+        <field name="sequence">30</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/divers_silhouette.jpg"/>
+    </record>
+
+    <record id="demo_image_sunset_4" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sunset"/>
+        <field name="name">Anchored under the cliffs</field>
+        <field name="sequence">40</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/boats_cliff.jpg"/>
+    </record>
+
+    <record id="demo_image_sunset_5" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sunset"/>
+        <field name="name">Reef and sponges on the west coast</field>
+        <field name="sequence">50</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/diver_reef.jpg"/>
+    </record>
+
+    <record id="demo_image_scuba_1" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_scuba"/>
+        <field name="name">Divers on the safety stop</field>
+        <field name="sequence">10</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/divers_silhouette.jpg"/>
+    </record>
+
+    <record id="demo_image_scuba_2" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_scuba"/>
+        <field name="name">Anchored under the cliffs</field>
+        <field name="sequence">20</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/boats_cliff.jpg"/>
+    </record>
+
+    <record id="demo_image_scuba_3" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_scuba"/>
+        <field name="name">The dock at Lobster Marina</field>
+        <field name="sequence">30</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/pier_turquoise.jpg"/>
+    </record>
+
+    <record id="demo_image_scuba_4" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_scuba"/>
+        <field name="name">The Kralendijk waterfront</field>
+        <field name="sequence">40</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/kralendijk_waterfront.jpg"/>
+    </record>
+
+    <record id="demo_image_scuba_5" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_scuba"/>
+        <field name="name">Beaching at No Name Beach</field>
+        <field name="sequence">50</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/boat_white_sand.jpg"/>
+    </record>
+
+    <record id="demo_image_sailing_1" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sailing"/>
+        <field name="name">Beaching at No Name Beach</field>
+        <field name="sequence">10</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/boat_white_sand.jpg"/>
+    </record>
+
+    <record id="demo_image_sailing_2" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sailing"/>
+        <field name="name">The dock at Lobster Marina</field>
+        <field name="sequence">20</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/pier_turquoise.jpg"/>
+    </record>
+
+    <record id="demo_image_sailing_3" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sailing"/>
+        <field name="name">Reef and sponges on the west coast</field>
+        <field name="sequence">30</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/diver_reef.jpg"/>
+    </record>
+
+    <record id="demo_image_sailing_4" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sailing"/>
+        <field name="name">The Kralendijk waterfront</field>
+        <field name="sequence">40</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/kralendijk_waterfront.jpg"/>
+    </record>
+
+    <record id="demo_image_sailing_5" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_sailing"/>
+        <field name="name">Divers on the safety stop</field>
+        <field name="sequence">50</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/divers_silhouette.jpg"/>
+    </record>
+
+    <record id="demo_image_klein_1" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_klein"/>
+        <field name="name">The dock at Lobster Marina</field>
+        <field name="sequence">10</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/pier_turquoise.jpg"/>
+    </record>
+
+    <record id="demo_image_klein_2" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_klein"/>
+        <field name="name">Anchored under the cliffs</field>
+        <field name="sequence">20</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/boats_cliff.jpg"/>
+    </record>
+
+    <record id="demo_image_klein_3" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_klein"/>
+        <field name="name">The Kralendijk waterfront</field>
+        <field name="sequence">30</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/kralendijk_waterfront.jpg"/>
+    </record>
+
+    <record id="demo_image_klein_4" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_klein"/>
+        <field name="name">Reef and sponges on the west coast</field>
+        <field name="sequence">40</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/diver_reef.jpg"/>
+    </record>
+
+    <record id="demo_image_klein_5" model="tour.tour.image">
+        <field name="tour_id" ref="demo_tour_klein"/>
+        <field name="name">Divers on the safety stop</field>
+        <field name="sequence">50</field>
+        <field name="image_1920" type="base64" file="tour_booking/static/demo/divers_silhouette.jpg"/>
+    </record>
+
+    <!-- Materialise the schedule, so a fresh demo database has a calendar with
+         something in it rather than one that fills up when the cron first
+         runs tomorrow. -->
+    <function model="tour.departure" name="_cron_generate_departures"/>
+
+</odoo>

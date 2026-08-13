@@ -25,6 +25,10 @@ createdb "$DB"
 
 # A port of its own, so a dev server left running on 8069 does not stop the
 # suite. HttpCase needs a real listening socket, so this cannot just be off.
+#
+# `--with-demo` because Odoo 19 flipped the default: demo data is no longer
+# loaded unless asked for. Without it the demo XML is never parsed here, and a
+# broken demo file would sail through a green suite and fail the build instead.
 "$VENV" "$ODOO/odoo-bin" \
     -c "$REPO/odoo.conf" \
     -d "$DB" \
@@ -33,4 +37,5 @@ createdb "$DB"
     --test-tags "$TAGS" \
     --stop-after-init \
     --http-port=8079 \
+    --with-demo \
     --log-level=warn
