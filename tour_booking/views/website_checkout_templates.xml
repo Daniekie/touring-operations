@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="checkout" name="Tour Checkout">
+        <t t-call="website.layout">
+            <div id="wrap">
+                <div class="container my-5">
+                    <h1>Complete your booking</h1>
+
+                    <div t-if="error" class="alert alert-danger" t-esc="error"/>
+
+                    <div class="row">
+                        <div class="col-lg-7">
+                            <form t-attf-action="/tour/booking/#{booking.id}/details"
+                                  method="post">
+                                <input type="hidden" name="csrf_token"
+                                       t-att-value="request.csrf_token()"/>
+                                <input type="hidden" name="access_token"
+                                       t-att-value="booking.access_token"/>
+
+                                <h3>Your details</h3>
+                                <div class="row mb-4">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label" for="name">Name</label>
+                                        <input type="text" name="name" id="name"
+                                               class="form-control" required="required"
+                                               t-att-value="booking.partner_id.name"/>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label" for="email">Email</label>
+                                        <input type="email" name="email" id="email"
+                                               class="form-control" required="required"
+                                               t-att-value="booking.partner_id.email"/>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label" for="phone">Phone</label>
+                                        <input type="text" name="phone" id="phone"
+                                               class="form-control"
+                                               t-att-value="booking.partner_id.phone"/>
+                                    </div>
+                                </div>
+
+                                <div t-if="extras" class="mb-4">
+                                    <h3>Extras</h3>
+                                    <div t-foreach="extras" t-as="extra"
+                                         class="d-flex align-items-center justify-content-between border-bottom py-2">
+                                        <div>
+                                            <strong t-field="extra.name"/>
+                                            <div class="text-muted small">
+                                                <span t-field="extra.price"
+                                                      t-options="{'widget': 'monetary', 'display_currency': extra.currency_id}"/>
+                                                <t t-if="extra.price_basis == 'per_person'"> per person</t>
+                                                <t t-else=""> per booking</t>
+                                            </div>
+                                        </div>
+                                        <input type="number" min="0"
+                                               t-attf-name="extra_#{extra.id}"
+                                               t-att-value="0"
+                                               class="form-control" style="width: 6rem"/>
+                                    </div>
+                                </div>
+
+                                <div t-if="questions" class="mb-4">
+                                    <h3>A few questions</h3>
+                                    <t t-foreach="questions" t-as="question">
+                                        <t t-set="indexes"
+                                           t-value="list(range(1, booking.pax + 1)) if question.scope == 'per_person' else [0]"/>
+                                        <div t-foreach="indexes" t-as="index" class="mb-3">
+                                            <label class="form-label"
+                                                   t-attf-for="question_#{question.id}_#{index}">
+                                                <span t-field="question.name"/>
+                                                <t t-if="question.scope == 'per_person'">
+                                                    (participant <t t-esc="index"/>)
+                                                </t>
+                                                <span t-if="question.required" class="text-danger">*</span>
+                                            </label>
+
+                                            <input t-if="question.field_type == 'text'"
+                                                   type="text" class="form-control"
+                                                   t-attf-name="question_#{question.id}_#{index}"
+                                                   t-attf-id="question_#{question.id}_#{index}"
+                                                   t-att-required="'required' if question.required else None"/>
+
+                                            <select t-if="question.field_type == 'select'"
+                                                    class="form-select"
+                                                    t-attf-name="question_#{question.id}_#{index}"
+                                                    t-attf-id="question_#{question.id}_#{index}"
+                                                    t-att-required="'required' if question.required else None">
+                                                <option value="">—</option>
+                                                <option t-foreach="question._options()" t-as="option"
+                                                        t-att-value="option" t-esc="option"/>
+                                            </select>
+
+                                            <div t-if="question.field_type == 'bool'" class="form-check">
+                                                <input type="checkbox" class="form-check-input"
+                                                       t-attf-name="question_#{question.id}_#{index}"
+                                                       t-attf-id="question_#{question.id}_#{index}"/>
+                                                <label class="form-check-label"
+                                                       t-attf-for="question_#{question.id}_#{index}">Yes</label>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+
+                                <button type="submit" class="btn btn-secondary">
+                                    Save details
+                                </button>
+                            </form>
+
+                            <hr class="my-4"/>
+
+                            <h3>Payment</h3>
+                            <p class="text-muted">
+                                Your seats are held while you pay. If you do not
+                                finish, they go back on sale automatically.
+                            </p>
+                            <t t-call="payment.form"/>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <t t-call="tour_booking.booking_summary"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="booking_summary" name="Booking Summary">
+        <div class="card">
+            <div class="card-body">
+                <h4 t-field="booking.tour_id.name"/>
+                <div class="text-muted mb-3">
+                    <div>
+                        <i class="fa fa-calendar me-1"/>
+                        <span t-field="booking.start_datetime"
+                              t-options="{'widget': 'datetime', 'tz_name': booking.tour_id.tz}"/>
+                    </div>
+                    <div>
+                        <i class="fa fa-users me-1"/>
+                        <t t-esc="booking.pax"/> participant(s)
+                    </div>
+                </div>
+
+                <table class="table table-sm">
+                    <tr>
+                        <td>
+                            <t t-esc="booking.pax"/> ×
+                            <span t-field="booking.tour_id.price_per_person"
+                                  t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                        </td>
+                        <td class="text-end">
+                            <span t-esc="booking.pax * booking.tour_id.price_per_person"
+                                  t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                        </td>
+                    </tr>
+                    <tr t-foreach="booking.extra_line_ids" t-as="line">
+                        <td>
+                            <span t-field="line.extra_id.name"/>
+                            <span class="text-muted"> × <t t-esc="line.quantity"/></span>
+                        </td>
+                        <td class="text-end">
+                            <span t-field="line.price_subtotal"
+                                  t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                        </td>
+                    </tr>
+                    <tr t-if="booking.amount_tax">
+                        <td>Taxes</td>
+                        <td class="text-end">
+                            <span t-field="booking.amount_tax"
+                                  t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                        </td>
+                    </tr>
+                    <tr class="fw-bold border-top">
+                        <td>Total</td>
+                        <td class="text-end">
+                            <span t-field="booking.amount_total"
+                                  t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                        </td>
+                    </tr>
+                </table>
+
+                <div t-if="booking.cancellation_policy_id" class="small text-muted">
+                    <strong>Cancellation</strong>
+                    <div t-field="booking.cancellation_policy_id.description"/>
+                    <ul class="list-unstyled mb-0">
+                        <li t-foreach="booking.cancellation_policy_id.rule_ids" t-as="rule">
+                            <t t-esc="rule.hours_before"/>h before:
+                            <t t-esc="int(rule.refund_percent)"/>% back
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="booking_confirmation" name="Booking Confirmation">
+        <t t-call="website.layout">
+            <div id="wrap">
+                <div class="container my-5">
+                    <div t-if="booking.state == 'confirmed'" class="alert alert-success">
+                        <h4>You are booked.</h4>
+                        <p>
+                            Reference <strong t-field="booking.name"/>. We have
+                            sent nothing yet — keep this page.
+                        </p>
+                    </div>
+                    <div t-if="booking.state == 'cancelled'" class="alert alert-secondary">
+                        <h4>This booking is cancelled.</h4>
+                        <p t-if="booking.refund_amount">
+                            Refund due:
+                            <span t-field="booking.refund_amount"
+                                  t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                            (<t t-esc="int(booking.refund_percent)"/>%).
+                        </p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-5">
+                            <t t-call="tour_booking.booking_summary"/>
+                        </div>
+                        <div class="col-lg-7">
+                            <div t-if="booking.state == 'confirmed' and booking._can_cancel()">
+                                <h3>Need to cancel?</h3>
+                                <p t-if="booking.cancellation_policy_id">
+                                    If you cancel now you would get
+                                    <strong>
+                                        <span t-esc="refund_preview"
+                                              t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                                    </strong>
+                                    back.
+                                </p>
+                                <form t-attf-action="/tour/booking/#{booking.id}/cancel"
+                                      method="post">
+                                    <input type="hidden" name="csrf_token"
+                                           t-att-value="request.csrf_token()"/>
+                                    <input type="hidden" name="access_token"
+                                           t-att-value="booking.access_token"/>
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        Cancel this booking
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>

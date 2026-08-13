@@ -1,0 +1,94 @@
+// Frontend only. None of this is used in the back office, and loading it into
+// the web client would cost every internal user the download.
+
+.o_tour_card {
+    transition: box-shadow .15s ease-in-out;
+
+    &:hover {
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+    }
+
+    .o_tour_card_img {
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+    }
+}
+
+.o_tour_hero {
+    height: 22rem;
+    background-size: cover;
+    background-position: center;
+}
+
+// Inclusions and exclusions are written as ordinary bullet lists in the
+// wysiwyg; the tick and the cross are put on here rather than stored in the
+// content, so an operator never has to type a glyph to get one.
+.o_tour_included ul,
+.o_tour_excluded ul {
+    list-style: none;
+    padding-left: 1.5rem;
+
+    li::before {
+        display: inline-block;
+        width: 1.5rem;
+        margin-left: -1.5rem;
+    }
+}
+
+.o_tour_included ul li::before {
+    content: "\2713";
+    color: var(--bs-success, #28a745);
+}
+
+.o_tour_excluded ul li::before {
+    content: "\2717";
+    color: var(--bs-danger, #dc3545);
+}
+
+.o_tour_itinerary li {
+    margin-bottom: .75rem;
+}
+
+.o_tour_widget {
+    top: 1rem;
+
+    .o_tour_grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: .25rem;
+        text-align: center;
+    }
+
+    .o_tour_dow {
+        font-size: .75rem;
+        font-weight: 600;
+        color: var(--bs-secondary-color, #6c757d);
+        padding-bottom: .25rem;
+    }
+
+    .o_tour_day {
+        padding: .4rem 0;
+        border-radius: .25rem;
+        font-size: .9rem;
+
+        &.unavailable {
+            color: var(--bs-secondary-color, #adb5bd);
+        }
+
+        &.available {
+            cursor: pointer;
+            background-color: var(--bs-tertiary-bg, #f1f3f5);
+            font-weight: 600;
+
+            &:hover {
+                background-color: var(--bs-primary, #714b67);
+                color: #fff;
+            }
+        }
+
+        &.selected {
+            background-color: var(--bs-primary, #714b67);
+            color: #fff;
+        }
+    }
+}

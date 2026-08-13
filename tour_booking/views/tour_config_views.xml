@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Locations -->
+
+    <record id="tour_location_view_list" model="ir.ui.view">
+        <field name="name">tour.location.list</field>
+        <field name="model">tour.location</field>
+        <field name="arch" type="xml">
+            <list string="Locations" editable="bottom">
+                <field name="name"/>
+                <field name="street"/>
+                <field name="city"/>
+                <field name="country_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="tour_location_view_form" model="ir.ui.view">
+        <field name="name">tour.location.form</field>
+        <field name="model">tour.location</field>
+        <field name="arch" type="xml">
+            <form string="Location">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Marina Bonaire"/></h1>
+                    </div>
+                    <group>
+                        <group string="Address">
+                            <field name="street"/>
+                            <field name="zip"/>
+                            <field name="city"/>
+                            <field name="country_id"/>
+                        </group>
+                        <group string="Map">
+                            <field name="latitude"/>
+                            <field name="longitude"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <group string="How to Get There">
+                        <field name="how_to_get_there" nolabel="1"
+                               placeholder="Where to park, which gate, what the building looks like..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="tour_location_action" model="ir.actions.act_window">
+        <field name="name">Locations</field>
+        <field name="res_model">tour.location</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Extras -->
+
+    <record id="tour_extra_view_list" model="ir.ui.view">
+        <field name="name">tour.extra.list</field>
+        <field name="model">tour.extra</field>
+        <field name="arch" type="xml">
+            <list string="Extras" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="price"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="price_basis"/>
+                <field name="is_taxable"/>
+                <field name="max_quantity"/>
+                <field name="tour_ids" widget="many2many_tags"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="tour_extra_action" model="ir.actions.act_window">
+        <field name="name">Extras</field>
+        <field name="res_model">tour.extra</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sell add-ons</p>
+            <p>A wetsuit, a snorkel set, a hotel pickup. Per person or per booking.</p>
+        </field>
+    </record>
+
+    <!-- Questions -->
+
+    <record id="tour_question_view_list" model="ir.ui.view">
+        <field name="name">tour.question.list</field>
+        <field name="model">tour.question</field>
+        <field name="arch" type="xml">
+            <list string="Questions">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="field_type"/>
+                <field name="scope"/>
+                <field name="required"/>
+                <field name="tour_ids" widget="many2many_tags"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="tour_question_view_form" model="ir.ui.view">
+        <field name="name">tour.question.form</field>
+        <field name="model">tour.question</field>
+        <field name="arch" type="xml">
+            <form string="Question">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Shoe size"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="field_type"/>
+                            <field name="scope"/>
+                            <field name="required"/>
+                        </group>
+                        <group>
+                            <field name="tour_ids" widget="many2many_tags"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <group string="Choices" invisible="field_type != 'select'">
+                        <field name="answer_options" nolabel="1"
+                               placeholder="One choice per line"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="tour_question_action" model="ir.actions.act_window">
+        <field name="name">Questions</field>
+        <field name="res_model">tour.question</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Cancellation policies -->
+
+    <record id="tour_cancellation_policy_view_list" model="ir.ui.view">
+        <field name="name">tour.cancellation.policy.list</field>
+        <field name="model">tour.cancellation.policy</field>
+        <field name="arch" type="xml">
+            <list string="Cancellation Policies">
+                <field name="name"/>
+                <field name="tour_ids" widget="many2many_tags"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="tour_cancellation_policy_view_form" model="ir.ui.view">
+        <field name="name">tour.cancellation.policy.form</field>
+        <field name="model">tour.cancellation.policy</field>
+        <field name="arch" type="xml">
+            <form string="Cancellation Policy">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Standard"/></h1>
+                    </div>
+                    <field name="active" widget="boolean_toggle"/>
+                    <group string="Refund Windows">
+                        <field name="rule_ids" nolabel="1">
+                            <list editable="bottom">
+                                <field name="hours_before"/>
+                                <field name="refund_percent"/>
+                            </list>
+                        </field>
+                        <div class="text-muted" colspan="2">
+                            Read each line as "cancel at least this many hours
+                            before departure and get this much back". A guest
+                            earns the most generous window they are still early
+                            enough for; too close to departure and nothing
+                            applies.
+                        </div>
+                    </group>
+                    <group string="Shown to the Guest">
+                        <field name="description" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="tour_cancellation_policy_action" model="ir.actions.act_window">
+        <field name="name">Cancellation Policies</field>
+        <field name="res_model">tour.cancellation.policy</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tour_tour_view_list" model="ir.ui.view">
+        <field name="name">tour.tour.list</field>
+        <field name="model">tour.tour</field>
+        <field name="arch" type="xml">
+            <list string="Tours">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="location_id" optional="show"/>
+                <field name="duration_hours" widget="float_time"/>
+                <field name="price_per_person" widget="monetary"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="default_capacity"/>
+                <field name="departure_count" string="Departures"/>
+                <field name="is_published" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="tour_tour_view_form" model="ir.ui.view">
+        <field name="name">tour.tour.form</field>
+        <field name="model">tour.tour</field>
+        <field name="arch" type="xml">
+            <form string="Tour">
+                <header>
+                    <button name="action_view_departures" type="object"
+                            string="Departures" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_departures" type="object"
+                                class="oe_stat_button" icon="fa-calendar">
+                            <field name="departure_count" widget="statinfo" string="Departures"/>
+                        </button>
+                        <button name="action_view_bookings" type="object"
+                                class="oe_stat_button" icon="fa-ticket">
+                            <field name="booking_count" widget="statinfo" string="Bookings"/>
+                        </button>
+                    </div>
+                    <field name="image_1920" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Blue Hole Dive"/></h1>
+                    </div>
+                    <group>
+                        <group string="The Experience">
+                            <field name="duration_hours" widget="float_time"/>
+                            <field name="location_id"/>
+                            <field name="meeting_point_note" placeholder="Ask for Marco at the counter"/>
+                        </group>
+                        <group string="Selling">
+                            <field name="price_per_person"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="tax_ids" widget="many2many_tags"/>
+                            <field name="default_capacity"/>
+                            <field name="is_published" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Scheduling">
+                            <field name="tz"/>
+                            <field name="has_specific_time"/>
+                            <field name="booking_cutoff_hours"/>
+                        </group>
+                        <group string="Optional Settings">
+                            <field name="cancellation_policy_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="What the guest is buying..."/>
+                        </page>
+                        <page string="Start Times" name="start_times"
+                              invisible="not has_specific_time">
+                            <field name="start_time_ids">
+                                <list editable="bottom">
+                                    <field name="time_of_day" widget="float_time"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Itinerary" name="itinerary">
+                            <field name="itinerary_step_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="duration_minutes"/>
+                                    <field name="description"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="What's Included" name="inclusions">
+                            <group>
+                                <field name="inclusions" nolabel="1"
+                                       placeholder="Included in the price..."/>
+                                <field name="exclusions" nolabel="1"
+                                       placeholder="Not included..."/>
+                            </group>
+                        </page>
+                        <page string="Good to Know" name="know">
+                            <group>
+                                <field name="know_before_you_go" nolabel="1"/>
+                                <field name="what_to_bring" nolabel="1"/>
+                            </group>
+                        </page>
+                        <page string="Extras &amp; Questions" name="extras">
+                            <group>
+                                <field name="extra_ids" widget="many2many_tags"/>
+                                <field name="question_ids" widget="many2many_tags"/>
+                            </group>
+                        </page>
+                        <page string="Availability" name="availability">
+                            <field name="availability_rule_ids">
+                                <list>
+                                    <field name="internal_label"/>
+                                    <field name="recurrence"/>
+                                    <field name="date_from"/>
+                                    <field name="date_to"/>
+                                    <field name="min_pax"/>
+                                    <field name="max_pax"/>
+                                    <field name="capacity"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Gallery" name="gallery">
+                            <field name="image_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="image_1920" widget="image" options="{'size': [80, 80]}"/>
+                                    <field name="name"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="tour_tour_view_search" model="ir.ui.view">
+        <field name="name">tour.tour.search</field>
+        <field name="model">tour.tour</field>
+        <field name="arch" type="xml">
+            <search string="Tours">
+                <field name="name"/>
+                <field name="location_id"/>
+                <filter name="published" string="Published" domain="[('is_published', '=', True)]"/>
+                <filter name="unpublished" string="Unpublished" domain="[('is_published', '=', False)]"/>
+                <separator/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group name="group_by">
+                    <filter name="group_location" string="Meeting Point"
+                            context="{'group_by': 'location_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="tour_tour_action" model="ir.actions.act_window">
+        <field name="name">Tours</field>
+        <field name="res_model">tour.tour</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first tour</p>
+            <p>
+                A tour describes the experience and what it costs. Availability
+                rules then say when it runs, and those generate the departures
+                guests actually book seats on.
+            </p>
+        </field>
+    </record>
+
+</odoo>

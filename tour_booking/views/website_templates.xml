@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ==================== The catalogue ==================== -->
+
+    <template id="tours" name="Tours">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <div class="container my-5">
+                    <h1 class="mb-4">Our Tours</h1>
+
+                    <div t-if="not tours" class="alert alert-info">
+                        No tours are published yet.
+                    </div>
+
+                    <!-- Two per row: col-lg-6. Deliberately not full-width
+                         rows, which read as a list rather than a catalogue. -->
+                    <div class="row g-4">
+                        <div t-foreach="tours" t-as="tour" class="col-12 col-lg-6">
+                            <div class="card h-100 o_tour_card">
+                                <a t-att-href="tour.website_url" class="text-decoration-none">
+                                    <img t-if="tour.image_1920"
+                                         t-attf-src="/web/image/tour.tour/#{tour.id}/image_1920"
+                                         class="card-img-top o_tour_card_img"
+                                         t-att-alt="tour.name"/>
+                                </a>
+                                <div class="card-body d-flex flex-column">
+                                    <h4 class="card-title">
+                                        <a t-att-href="tour.website_url"
+                                           class="text-decoration-none"
+                                           t-field="tour.name"/>
+                                    </h4>
+                                    <div class="text-muted mb-2">
+                                        <i class="fa fa-clock-o me-1"/>
+                                        <span t-field="tour.duration_display"/>
+                                        <t t-if="tour.location_id">
+                                            <span class="mx-2">·</span>
+                                            <i class="fa fa-map-marker me-1"/>
+                                            <span t-field="tour.location_id.name"/>
+                                        </t>
+                                    </div>
+                                    <div class="mt-auto d-flex align-items-center justify-content-between">
+                                        <!-- The actual price, not "from": there
+                                             is one price per tour, so a "from"
+                                             would hedge against a variation
+                                             that cannot exist. -->
+                                        <span class="h5 mb-0">
+                                            <span t-field="tour.price_per_person"
+                                                  t-options="{'widget': 'monetary', 'display_currency': tour.currency_id}"/>
+                                            <small class="text-muted"> per person</small>
+                                        </span>
+                                        <a t-att-href="tour.website_url" class="btn btn-primary">
+                                            More info
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ==================== One tour ==================== -->
+
+    <template id="tour_detail" name="Tour">
+        <t t-call="website.layout">
+            <div id="wrap">
+                <!-- Section order: image, info, booking widget. -->
+                <div t-if="tour.image_1920" class="o_tour_hero"
+                     t-attf-style="background-image: url('/web/image/tour.tour/#{tour.id}/image_1920')"/>
+
+                <div class="container my-5">
+                    <div class="row">
+                        <div class="col-lg-7">
+                            <h1 t-field="tour.name"/>
+                            <div class="text-muted mb-4">
+                                <i class="fa fa-clock-o me-1"/>
+                                <span t-field="tour.duration_display"/>
+                                <t t-if="tour.location_id">
+                                    <span class="mx-2">·</span>
+                                    <i class="fa fa-map-marker me-1"/>
+                                    <span t-field="tour.location_id.name"/>
+                                </t>
+                            </div>
+
+                            <div t-field="tour.description" class="mb-4"/>
+
+                            <div t-if="tour.itinerary_step_ids" class="mb-4">
+                                <h3>Itinerary</h3>
+                                <ol class="o_tour_itinerary">
+                                    <li t-foreach="tour.itinerary_step_ids" t-as="step">
+                                        <strong t-field="step.name"/>
+                                        <span t-if="step.duration_minutes" class="text-muted">
+                                            (<t t-esc="step.duration_minutes"/> min)
+                                        </span>
+                                        <div t-field="step.description"/>
+                                    </li>
+                                </ol>
+                            </div>
+
+                            <div class="row">
+                                <div t-if="tour.inclusions" class="col-md-6 mb-4">
+                                    <h3>What's included</h3>
+                                    <div t-field="tour.inclusions" class="o_tour_included"/>
+                                </div>
+                                <div t-if="tour.exclusions" class="col-md-6 mb-4">
+                                    <h3>Not included</h3>
+                                    <div t-field="tour.exclusions" class="o_tour_excluded"/>
+                                </div>
+                            </div>
+
+                            <div t-if="tour.know_before_you_go" class="mb-4">
+                                <h3>Know before you go</h3>
+                                <div t-field="tour.know_before_you_go"/>
+                            </div>
+
+                            <div t-if="tour.what_to_bring" class="mb-4">
+                                <h3>What to bring</h3>
+                                <div t-field="tour.what_to_bring"/>
+                            </div>
+
+                            <div t-if="tour.location_id" class="mb-4">
+                                <h3>Meeting point</h3>
+                                <address>
+                                    <strong t-field="tour.location_id.name"/><br/>
+                                    <span t-field="tour.location_id.street"/><br/>
+                                    <span t-field="tour.location_id.city"/>
+                                </address>
+                                <div t-field="tour.location_id.how_to_get_there"/>
+                                <p t-if="tour.meeting_point_note" t-field="tour.meeting_point_note"/>
+                            </div>
+
+                            <div t-if="tour.cancellation_policy_id" class="mb-4">
+                                <h3>Cancellation policy</h3>
+                                <div t-field="tour.cancellation_policy_id.description"/>
+                                <ul class="list-unstyled">
+                                    <li t-foreach="tour.cancellation_policy_id.rule_ids" t-as="rule">
+                                        Cancel at least <t t-esc="rule.hours_before"/> hours before
+                                        departure for a <t t-esc="int(rule.refund_percent)"/>% refund.
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- ===== The booking widget ===== -->
+                        <div class="col-lg-5">
+                            <div class="card o_tour_widget sticky-lg-top"
+                                 t-att-data-tour-id="tour.id"
+                                 t-att-data-month="month.strftime('%Y-%m')">
+                                <div class="card-body">
+                                    <div class="h4">
+                                        <span t-field="tour.price_per_person"
+                                              t-options="{'widget': 'monetary', 'display_currency': tour.currency_id}"/>
+                                        <small class="text-muted"> per person</small>
+                                    </div>
+
+                                    <form action="/tour/book" method="post" class="o_tour_book_form">
+                                        <input type="hidden" name="csrf_token"
+                                               t-att-value="request.csrf_token()"/>
+                                        <input type="hidden" name="departure_id"
+                                               class="o_tour_departure_input"/>
+
+                                        <!-- One month only. The horizon is a
+                                             year, but a guest choosing a day
+                                             out does not page through it. -->
+                                        <div class="o_tour_calendar my-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <button type="button" class="btn btn-sm btn-light o_tour_prev">
+                                                    <i class="fa fa-chevron-left"/>
+                                                </button>
+                                                <strong class="o_tour_month_label"/>
+                                                <button type="button" class="btn btn-sm btn-light o_tour_next">
+                                                    <i class="fa fa-chevron-right"/>
+                                                </button>
+                                            </div>
+                                            <div class="o_tour_grid"/>
+                                        </div>
+
+                                        <!-- Revealed only when the chosen day
+                                             offers more than one start time. -->
+                                        <div class="o_tour_times mb-3 d-none">
+                                            <label class="form-label">Start time</label>
+                                            <div class="o_tour_time_options btn-group-vertical w-100"/>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label" for="pax">Participants</label>
+                                            <input type="number" name="pax" id="pax"
+                                                   class="form-control o_tour_pax"
+                                                   value="1" min="1"/>
+                                            <small class="text-muted o_tour_seats_left"/>
+                                        </div>
+
+                                        <button type="submit"
+                                                class="btn btn-primary w-100 o_tour_book_button"
+                                                disabled="disabled">
+                                            Book now
+                                        </button>
+                                        <div class="text-muted small mt-2 o_tour_hint">
+                                            Pick a date to continue.
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ==================== Refusal ==================== -->
+
+    <template id="booking_refused" name="Booking Refused">
+        <t t-call="website.layout">
+            <div id="wrap">
+                <div class="container my-5">
+                    <div class="alert alert-warning">
+                        <h4>That departure could not be booked</h4>
+                        <p t-if="reason" t-esc="reason"/>
+                        <p t-else="">Somebody may have taken the last seats while you were deciding.</p>
+                    </div>
+                    <a t-att-href="tour.website_url" class="btn btn-primary">Back to the tour</a>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>

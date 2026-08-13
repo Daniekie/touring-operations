@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_tour_booking_root" name="Tours"
+              web_icon="tour_booking,static/description/icon.png"
+              sequence="45"
+              groups="tour_booking.group_tour_user"/>
+
+    <menuitem id="menu_tour_bookings" name="Bookings"
+              parent="menu_tour_booking_root"
+              action="tour_booking_action"
+              sequence="10"/>
+
+    <menuitem id="menu_tour_departures" name="Departures"
+              parent="menu_tour_booking_root"
+              action="tour_departure_action"
+              sequence="20"/>
+
+    <menuitem id="menu_tour_catalogue" name="Catalogue"
+              parent="menu_tour_booking_root"
+              sequence="30"
+              groups="tour_booking.group_tour_manager"/>
+
+    <menuitem id="menu_tour_tours" name="Tours"
+              parent="menu_tour_catalogue"
+              action="tour_tour_action"
+              sequence="10"/>
+
+    <menuitem id="menu_tour_availability" name="Availability"
+              parent="menu_tour_catalogue"
+              action="tour_availability_rule_action"
+              sequence="20"/>
+
+    <menuitem id="menu_tour_generate" name="Generate Departures"
+              parent="menu_tour_catalogue"
+              action="action_generate_departures"
+              sequence="30"/>
+
+    <menuitem id="menu_tour_config" name="Configuration"
+              parent="menu_tour_booking_root"
+              sequence="90"
+              groups="tour_booking.group_tour_manager"/>
+
+    <menuitem id="menu_tour_locations" name="Locations"
+              parent="menu_tour_config"
+              action="tour_location_action"
+              sequence="10"/>
+
+    <menuitem id="menu_tour_extras" name="Extras"
+              parent="menu_tour_config"
+              action="tour_extra_action"
+              sequence="20"/>
+
+    <menuitem id="menu_tour_questions" name="Questions"
+              parent="menu_tour_config"
+              action="tour_question_action"
+              sequence="30"/>
+
+    <menuitem id="menu_tour_policies" name="Cancellation Policies"
+              parent="menu_tour_config"
+              action="tour_cancellation_policy_action"
+              sequence="40"/>
+
+</odoo>

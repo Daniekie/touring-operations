@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tour_availability_rule_view_list" model="ir.ui.view">
+        <field name="name">tour.availability.rule.list</field>
+        <field name="model">tour.availability.rule</field>
+        <field name="arch" type="xml">
+            <list string="Availability Rules">
+                <field name="tour_id"/>
+                <field name="internal_label"/>
+                <field name="recurrence"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="min_pax"/>
+                <field name="max_pax"/>
+                <field name="capacity"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="tour_availability_rule_view_form" model="ir.ui.view">
+        <field name="name">tour.availability.rule.form</field>
+        <field name="model">tour.availability.rule</field>
+        <field name="arch" type="xml">
+            <form string="Availability Rule">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="internal_label" string="Label"/>
+                        <h1>
+                            <field name="internal_label" placeholder="High season"/>
+                        </h1>
+                        <div class="text-muted">
+                            Admin-facing only. Guests never see this.
+                        </div>
+                    </div>
+                    <group>
+                        <group string="Tour">
+                            <field name="tour_id"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Period">
+                            <field name="date_from"/>
+                            <field name="date_to" placeholder="Open-ended"
+                                   readonly="recurrence == 'one_off'"/>
+                        </group>
+                    </group>
+                    <group string="Repeats">
+                        <field name="recurrence" widget="radio"/>
+                        <label for="mon" string="On these days"
+                               invisible="recurrence != 'weekly'"/>
+                        <div invisible="recurrence != 'weekly'">
+                            <field name="mon"/><label for="mon"/>
+                            <field name="tue"/><label for="tue"/>
+                            <field name="wed"/><label for="wed"/>
+                            <field name="thu"/><label for="thu"/>
+                            <field name="fri"/><label for="fri"/>
+                            <field name="sat"/><label for="sat"/>
+                            <field name="sun"/><label for="sun"/>
+                        </div>
+                    </group>
+                    <group>
+                        <group string="Start Times">
+                            <field name="all_start_times"/>
+                            <field name="start_time_ids" widget="many2many_tags"
+                                   invisible="all_start_times"
+                                   domain="[('tour_id', '=', tour_id)]"/>
+                        </group>
+                        <group string="Party Size">
+                            <field name="min_pax"/>
+                            <field name="max_pax"/>
+                            <field name="capacity" placeholder="0 = use the tour default"/>
+                            <div class="text-muted" colspan="2">
+                                Minimum and maximum apply to a single booking. They
+                                do not mean the departure only runs once that many
+                                people have booked.
+                            </div>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="tour_availability_rule_view_search" model="ir.ui.view">
+        <field name="name">tour.availability.rule.search</field>
+        <field name="model">tour.availability.rule</field>
+        <field name="arch" type="xml">
+            <search string="Availability Rules">
+                <field name="tour_id"/>
+                <field name="internal_label"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group name="group_by">
+                    <filter name="group_tour" string="Tour" context="{'group_by': 'tour_id'}"/>
+                    <filter name="group_recurrence" string="Repeats"
+                            context="{'group_by': 'recurrence'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="tour_availability_rule_action" model="ir.actions.act_window">
+        <field name="name">Availability</field>
+        <field name="res_model">tour.availability.rule</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Say when your tours run</p>
+            <p>
+                A rule is a pattern — every Monday and Wednesday from March to
+                October, say. Departures are generated from it, and once
+                generated they live their own life: cancelling one Tuesday does
+                not change the rule, and editing the rule does not resurrect it.
+            </p>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Local Odoo runtime: filestore, sessions and anything else the server writes.
+.odoo-data/

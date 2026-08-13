@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tour_booking_view_list" model="ir.ui.view">
+        <field name="name">tour.booking.list</field>
+        <field name="model">tour.booking</field>
+        <field name="arch" type="xml">
+            <list string="Bookings" decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="tour_id"/>
+                <field name="start_datetime"/>
+                <field name="pax"/>
+                <field name="amount_total"/>
+                <field name="amount_paid" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'confirmed'"
+                       decoration-danger="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="tour_booking_view_form" model="ir.ui.view">
+        <field name="name">tour.booking.form</field>
+        <field name="model">tour.booking</field>
+        <field name="arch" type="xml">
+            <form string="Booking">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirm"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state == 'cancelled'"
+                            confirm="Cancel this booking and put its seats back on sale?"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Guest">
+                            <field name="partner_id"/>
+                            <field name="pax"/>
+                        </group>
+                        <group string="Departure">
+                            <field name="departure_id"/>
+                            <field name="tour_id" readonly="1"/>
+                            <field name="start_datetime" readonly="1"/>
+                        </group>
+                        <group string="Amount">
+                            <field name="amount_untaxed"/>
+                            <field name="amount_tax"/>
+                            <field name="amount_total" class="oe_subtotal_footer_separator"/>
+                            <field name="amount_paid"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Cancellation">
+                            <field name="cancellation_policy_id"/>
+                            <field name="cancelled_on"/>
+                            <field name="refund_percent" invisible="not cancelled_on"/>
+                            <field name="refund_amount" invisible="not cancelled_on"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Extras" name="extras">
+                            <field name="extra_line_ids">
+                                <list editable="bottom">
+                                    <field name="extra_id"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_price"/>
+                                    <field name="is_taxable"/>
+                                    <field name="price_subtotal" sum="Total"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Answers" name="answers">
+                            <field name="answer_ids">
+                                <list editable="bottom">
+                                    <field name="question_id"/>
+                                    <field name="participant_index"/>
+                                    <field name="field_type" column_invisible="1"/>
+                                    <field name="value_char"
+                                           invisible="field_type == 'bool'"/>
+                                    <field name="value_bool"
+                                           invisible="field_type != 'bool'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Payments" name="payments">
+                            <field name="transaction_ids" readonly="1">
+                                <list>
+                                    <field name="reference"/>
+                                    <field name="provider_id"/>
+                                    <field name="amount"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="tour_booking_view_search" model="ir.ui.view">
+        <field name="name">tour.booking.search</field>
+        <field name="model">tour.booking</field>
+        <field name="arch" type="xml">
+            <search string="Bookings">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="tour_id"/>
+                <field name="departure_id"/>
+                <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="confirmed" string="Confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter name="cancelled" string="Cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter name="upcoming" string="Upcoming"
+                        domain="[('start_datetime', '&gt;=', datetime.datetime.now())]"/>
+                <group name="group_by">
+                    <filter name="group_tour" string="Tour" context="{'group_by': 'tour_id'}"/>
+                    <filter name="group_departure" string="Departure"
+                            context="{'group_by': 'departure_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="tour_booking_action" model="ir.actions.act_window">
+        <field name="name">Bookings</field>
+        <field name="res_model">tour.booking</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_upcoming': 1}</field>
+    </record>
+
+</odoo>
