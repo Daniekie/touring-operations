@@ -20,6 +20,12 @@ class TourTour(models.Model):
     name = fields.Char(required=True, translate=True, tracking=True)
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
+    color = fields.Integer(
+        string="Colour",
+        help="Colour of this tour on the booking calendar. 0 picks one from "
+             "the tour's id, so every tour looks different without anybody "
+             "having to choose.",
+    )
     company_id = fields.Many2one(
         "res.company", required=True, default=lambda self: self.env.company
     )
@@ -200,4 +206,10 @@ class TourTourImage(models.Model):
     tour_id = fields.Many2one("tour.tour", required=True, ondelete="cascade", index=True)
     name = fields.Char(translate=True, help="Used as the image's alt text.")
     sequence = fields.Integer(default=10)
+    color = fields.Integer(
+        string="Colour",
+        help="Colour of this tour on the booking calendar. 0 picks one from "
+             "the tour's id, so every tour looks different without anybody "
+             "having to choose.",
+    )
     image_1920 = fields.Image(max_width=1920, max_height=1920, required=True)

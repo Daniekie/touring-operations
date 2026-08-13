@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- The Booking Calendar is an OWL component rather than a view type: it
+         lays start times against days, which no built-in Odoo view expresses,
+         and it needs its own header counts and filters. The stock list, form
+         and calendar views on tour.departure are still there and reachable
+         from the button in its top right. -->
+    <record id="action_booking_calendar" model="ir.actions.client">
+        <field name="name">Booking Calendar</field>
+        <field name="tag">tour_booking.booking_calendar</field>
+    </record>
+
+</odoo>

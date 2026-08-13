@@ -6,8 +6,12 @@
 # Odoo core suite, which takes an age and fails for reasons that have nothing
 # to do with this module; scoping it here means it cannot be forgotten.
 #
-#   ./scripts/test.sh                 all tests in the module
-#   ./scripts/test.sh .TestBooking    one class
+#   ./scripts/test.sh                      all tests in the module
+#   ./scripts/test.sh :TestBooking         one class
+#   ./scripts/test.sh :TestBooking.test_x  one test
+#
+# Mind the colon. A tag Odoo cannot match runs nothing and still exits 0, so a
+# mistyped filter looks exactly like a passing suite.
 #
 set -euo pipefail
 
@@ -17,7 +21,7 @@ VENV="$ODOO/.venv/bin/python"
 DB="tour_test"
 
 # The suffix lets a caller narrow to a class or a single test, e.g.
-# `.TestBooking` or `.TestBooking.test_a_booking_draws_down_the_seats_it_takes`.
+# `:TestBooking` or `:TestBooking.test_a_booking_draws_down_the_seats_it_takes`.
 TAGS="/tour_booking${1:-}"
 
 dropdb --if-exists "$DB"

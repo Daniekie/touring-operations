@@ -1,0 +1,197 @@
+// The Booking Calendar grid: start times down the side, days across the top.
+
+.o_tour_calendar_view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--o-view-background-color, #fff);
+
+    .o_tour_calendar_header {
+        padding: 1rem 1.5rem .5rem;
+    }
+
+    .o_tour_calendar_title {
+        margin: 0;
+        font-size: 1.75rem;
+    }
+
+    .o_tour_calendar_stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: .25rem;
+        color: var(--o-gray-600, #6c757d);
+
+        strong {
+            color: var(--o-gray-900, #212529);
+        }
+
+        // The only count that is a job rather than a fact.
+        .o_tour_attention strong {
+            color: var(--o-danger, #d9534f);
+        }
+    }
+
+    .o_tour_calendar_controls,
+    .o_tour_calendar_filters {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .5rem 1.5rem;
+        border-top: 1px solid var(--o-gray-200, #dee2e6);
+    }
+
+    .o_tour_calendar_controls {
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .o_tour_range_label {
+        min-width: 12rem;
+        text-align: center;
+    }
+
+    .o_tour_radio {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .o_tour_calendar_body {
+        flex: 1;
+        overflow: auto;
+        padding: 0 1.5rem 1.5rem;
+    }
+}
+
+.o_tour_grid_table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+
+    th, td {
+        border-bottom: 1px solid var(--o-gray-200, #dee2e6);
+        border-right: 1px solid var(--o-gray-200, #dee2e6);
+        vertical-align: top;
+        padding: .5rem;
+    }
+
+    thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: var(--o-view-background-color, #fff);
+        text-align: center;
+        font-weight: 400;
+        color: var(--o-gray-600, #6c757d);
+    }
+
+    // The row heading has to stay put while the week scrolls sideways,
+    // otherwise the times scroll away from the trips they label.
+    .o_tour_grid_corner,
+    .o_tour_grid_rowhead {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        width: 9rem;
+        background-color: var(--o-view-background-color, #fff);
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .o_tour_grid_corner {
+        z-index: 3;
+    }
+
+    .o_tour_grid_weekday {
+        font-size: .8rem;
+        text-transform: uppercase;
+    }
+
+    .o_tour_grid_daynum {
+        font-size: 1.25rem;
+        color: var(--o-gray-900, #212529);
+    }
+
+    .o_tour_today {
+        background-color: var(--o-gray-100, #f8f9fa);
+    }
+}
+
+.o_tour_cell {
+    border-radius: .5rem;
+    padding: .5rem .625rem;
+    margin-bottom: .375rem;
+    cursor: pointer;
+    transition: filter .1s ease-in-out;
+
+    &:hover {
+        filter: brightness(.96);
+    }
+
+    .o_tour_cell_name {
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    .o_tour_cell_seats {
+        margin-top: .25rem;
+        font-size: .8125rem;
+        opacity: .85;
+    }
+
+    // Only drawn once something is sold: an empty bar under every card is
+    // noise on a screen whose whole job is showing which trips are filling.
+    .o_tour_cell_bar {
+        height: 3px;
+        margin-top: .5rem;
+        border-radius: 2px;
+        background-color: rgba(0, 0, 0, .1);
+        overflow: hidden;
+    }
+
+    .o_tour_cell_fill {
+        height: 100%;
+        background-color: currentColor;
+        opacity: .7;
+    }
+
+    &.o_tour_cell_cancelled {
+        opacity: .5;
+        text-decoration: line-through;
+    }
+
+    &.o_tour_cell_full {
+        outline: 1px solid currentColor;
+    }
+}
+
+// A stable colour per tour, so one experience reads as one thing across the
+// week. The palette is deliberately pale: the text on top has to stay legible
+// and the grid should not look like a paint chart.
+$o-tour-colors: (
+    0:  (#e9ecef, #495057),
+    1:  (#e7f5ff, #1971c2),
+    2:  (#fff0f6, #a61e4d),
+    3:  (#f3f0ff, #5f3dc4),
+    4:  (#ebfbee, #2b8a3e),
+    5:  (#fff9db, #e67700),
+    6:  (#fff4e6, #d9480f),
+    7:  (#e3fafc, #0b7285),
+    8:  (#f8f0fc, #862e9c),
+    9:  (#e6fcf5, #087f5b),
+    10: (#fff5f5, #c92a2a),
+);
+
+@each $index, $pair in $o-tour-colors {
+    .o_tour_color_#{$index} {
+        background-color: nth($pair, 1);
+        color: nth($pair, 2);
+    }
+}

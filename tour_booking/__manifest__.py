@@ -43,6 +43,7 @@ There is deliberately no channel synchronisation with any OTA.
         # server action declared in here by id.
         "views/tour_departure_views.xml",
         "views/tour_booking_views.xml",
+        "views/tour_calendar_views.xml",
         "views/tour_booking_menus.xml",
         "views/res_config_settings_views.xml",
         "views/website_templates.xml",
@@ -56,6 +57,9 @@ There is deliberately no channel synchronisation with any OTA.
     "assets": {
         "web.assets_backend": [
             "tour_booking/static/src/scss/tour_booking_backend.scss",
+            "tour_booking/static/src/scss/booking_calendar.scss",
+            "tour_booking/static/src/js/booking_calendar/booking_calendar.js",
+            "tour_booking/static/src/js/booking_calendar/booking_calendar.xml",
         ],
         # Frontend only: none of this runs in the back office, and loading it
         # into the web client would cost every internal user the download.

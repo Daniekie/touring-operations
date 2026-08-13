@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="tour_booking.BookingCalendar">
+        <div class="o_tour_calendar_view o_action">
+
+            <div class="o_tour_calendar_header">
+                <h1 class="o_tour_calendar_title">Booking Calendar</h1>
+                <div class="o_tour_calendar_stats">
+                    <span><strong t-esc="state.grid.stats.departures or 0"/> departures</span>
+                    <span><strong t-esc="state.grid.stats.sold_out or 0"/> sold out</span>
+                    <span><strong t-esc="state.grid.stats.closed_out or 0"/> closed out</span>
+                    <span t-att-class="state.grid.stats.need_attention ? 'o_tour_attention' : ''">
+                        <strong t-esc="state.grid.stats.need_attention or 0"/> need attention
+                    </span>
+                </div>
+            </div>
+
+            <div class="o_tour_calendar_controls">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-light" t-on-click="() => this.shift(-1)"
+                            title="Previous">
+                        <i class="oi oi-chevron-left"/>
+                    </button>
+                    <strong class="o_tour_range_label" t-esc="rangeLabel"/>
+                    <button class="btn btn-light" t-on-click="() => this.shift(1)"
+                            title="Next">
+                        <i class="oi oi-chevron-right"/>
+                    </button>
+                    <button class="btn btn-link" t-on-click="() => this.today()">
+                        <t t-if="state.span === 'week'">This week</t>
+                        <t t-else="">Today</t>
+                    </button>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="btn-group">
+                        <button class="btn btn-secondary"
+                                t-att-class="state.span === 'day' ? 'active' : ''"
+                                t-on-click="() => this.setSpan('day')">Day</button>
+                        <button class="btn btn-secondary"
+                                t-att-class="state.span === 'week' ? 'active' : ''"
+                                t-on-click="() => this.setSpan('week')">Week</button>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary"
+                                t-att-class="state.mode === 'time' ? 'active' : ''"
+                                t-on-click="() => this.setMode('time')">By Time</button>
+                        <button class="btn btn-secondary"
+                                t-att-class="state.mode === 'experience' ? 'active' : ''"
+                                t-on-click="() => this.setMode('experience')">By Experience</button>
+                    </div>
+                    <button class="btn btn-light" t-on-click="() => this.openList()"
+                            title="Open as a list">
+                        <i class="oi oi-view-list"/>
+                    </button>
+                </div>
+            </div>
+
+            <div class="o_tour_calendar_filters">
+                <span class="text-muted me-2">Show:</span>
+                <label class="o_tour_radio">
+                    <input type="radio" name="show" value="all"
+                           t-att-checked="state.show === 'all'"
+                           t-on-change="() => this.setShow('all')"/>
+                    <span>All departures</span>
+                </label>
+                <label class="o_tour_radio">
+                    <input type="radio" name="show" value="booked"
+                           t-att-checked="state.show === 'booked'"
+                           t-on-change="() => this.setShow('booked')"/>
+                    <span>Only booked</span>
+                </label>
+                <label class="o_tour_radio">
+                    <input type="radio" name="show" value="disrupted"
+                           t-att-checked="state.show === 'disrupted'"
+                           t-on-change="() => this.setShow('disrupted')"/>
+                    <span>Only disrupted</span>
+                </label>
+            </div>
+
+            <div class="o_tour_calendar_body">
+                <table class="o_tour_grid_table">
+                    <thead>
+                        <tr>
+                            <th class="o_tour_grid_corner">
+                                <t t-if="state.mode === 'time'">Start time</t>
+                                <t t-else="">Experience</t>
+                            </th>
+                            <th t-foreach="state.grid.days" t-as="day" t-key="day.date"
+                                t-att-class="day.is_today ? 'o_tour_today' : ''">
+                                <div class="o_tour_grid_weekday" t-esc="day.weekday"/>
+                                <div class="o_tour_grid_daynum" t-esc="day.day"/>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="state.grid.rows" t-as="row" t-key="row.key">
+                            <th class="o_tour_grid_rowhead" t-esc="row.label"/>
+                            <td t-foreach="state.grid.days" t-as="day" t-key="day.date"
+                                t-att-class="day.is_today ? 'o_tour_today' : ''">
+                                <div t-foreach="cells(row, day)" t-as="cell" t-key="cell.id"
+                                     t-att-class="cellClass(cell)"
+                                     t-on-click="() => this.openDeparture(cell)">
+                                    <div class="o_tour_cell_name">
+                                        <t t-if="state.mode === 'experience' and cell.has_time">
+                                            <t t-esc="cell.time"/>
+                                        </t>
+                                        <t t-else="">
+                                            <t t-esc="cell.tour_name"/>
+                                        </t>
+                                    </div>
+                                    <div class="o_tour_cell_seats">
+                                        <i class="fa fa-user-o me-1" title="Seats"/>
+                                        <t t-esc="cell.seats_sold"/> / <t t-esc="cell.capacity"/>
+                                    </div>
+                                    <div class="o_tour_cell_bar">
+                                        <div class="o_tour_cell_fill"
+                                             t-attf-style="width: {{ fillPercent(cell) }}%"/>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div t-if="!state.loading and !state.grid.rows.length"
+                     class="o_tour_calendar_empty text-center text-muted p-5">
+                    <p class="h5">Nothing scheduled in this week.</p>
+                    <p>
+                        Trips come from a tour's availability rules. Add a rule
+                        under My Tours, then use Configuration → Refresh Calendar.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

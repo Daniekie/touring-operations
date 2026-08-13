@@ -24,7 +24,7 @@
 
     <menuitem id="menu_tour_departures" name="Calendar"
               parent="menu_tour_booking_root"
-              action="tour_departure_action"
+              action="action_booking_calendar"
               sequence="20"/>
 
     <menuitem id="menu_tour_tours" name="My Tours"

@@ -1,5 +1,7 @@
 import pytz
 
+from datetime import timedelta
+
 from dateutil.relativedelta import relativedelta
 
 from odoo import _, api, fields, models
@@ -130,6 +132,101 @@ class TourDeparture(models.Model):
             else:
                 label = when.strftime("%Y-%m-%d")
             departure.display_name = "%s — %s" % (departure.tour_id.name, label)
+
+    # --- The booking calendar ----------------------------------------------
+
+    @api.model
+    def get_calendar_grid(self, date_from, date_to, mode="time", show="all"):
+        """The week grid behind the Booking Calendar. -> dict.
+
+        Public on purpose: Odoo refuses RPC to any method whose name starts with
+        an underscore, and the OWL component calls this one straight from the
+        browser.
+
+        Rows are start times and columns are days, which is how an operator
+        reads a week: "what leaves at 09:00, and is Friday filling up?". Odoo's
+        stock calendar cannot express that — it lays events out along a time
+        axis — so the shape is computed here and drawn by an OWL component.
+
+        All of it is one query and one pass. The alternative, letting the client
+        ask per cell, would be forty-odd round trips for a single week.
+
+        `mode` picks what the rows mean: `time` groups by departure time,
+        `experience` groups by tour. `show` filters to `booked` or `disrupted`.
+        """
+        date_from = fields.Date.to_date(date_from)
+        date_to = fields.Date.to_date(date_to)
+
+        departures = self.search([
+            ("date", ">=", date_from),
+            ("date", "<=", date_to),
+        ], order="start_datetime")
+
+        stats = {
+            "departures": len(departures),
+            "sold_out": len(departures.filtered(lambda d: d.state == "full")),
+            "closed_out": len(departures.filtered(lambda d: d.state == "cancelled")),
+            # A cancelled trip that people have already booked onto. Nothing
+            # else on this screen is a problem the operator has to act on;
+            # this one is, so it gets counted separately.
+            "need_attention": len(departures.filtered(
+                lambda d: d.state == "cancelled" and d.seats_sold > 0
+            )),
+        }
+
+        if show == "booked":
+            departures = departures.filtered(lambda d: d.seats_sold > 0)
+        elif show == "disrupted":
+            departures = departures.filtered(
+                lambda d: d.state == "cancelled" or d.seats_sold > d.capacity
+            )
+
+        days = []
+        day = date_from
+        today = fields.Date.context_today(self)
+        while day <= date_to:
+            days.append({
+                "date": day.isoformat(),
+                "weekday": day.strftime("%a"),
+                "day": day.day,
+                "is_today": day == today,
+            })
+            day += timedelta(days=1)
+
+        rows = {}
+        for departure in departures:
+            local = departure._local_start()
+            if mode == "experience":
+                key = "tour-%s" % departure.tour_id.id
+                label = departure.tour_id.name
+                sort = (departure.tour_id.sequence, departure.tour_id.name or "")
+            else:
+                key = local.strftime("%H:%M")
+                label = key
+                sort = (local.hour, local.minute)
+            row = rows.setdefault(key, {"key": key, "label": label, "sort": sort, "cells": {}})
+            row["cells"].setdefault(departure.date.isoformat(), []).append({
+                "id": departure.id,
+                "tour_id": departure.tour_id.id,
+                "tour_name": departure.tour_id.name,
+                "time": local.strftime("%H:%M"),
+                "seats_sold": departure.seats_sold,
+                "capacity": departure.capacity,
+                "state": departure.state,
+                # A stable colour per tour so a row reads as one thing across
+                # the week. `color` lets the operator override it.
+                "color": departure.tour_id.color or (departure.tour_id.id % 11),
+                "has_time": departure.tour_id.has_specific_time,
+            })
+
+        return {
+            "stats": stats,
+            "days": days,
+            "rows": [
+                {k: v for k, v in row.items() if k != "sort"}
+                for row in sorted(rows.values(), key=lambda r: r["sort"])
+            ],
+        }
 
     # --- Booking window ----------------------------------------------------
 
