@@ -46,6 +46,23 @@
                             </div>
                         </setting>
                     </block>
+                    <block title="Website" name="tour_website_container">
+                        <setting id="tour_auto_menu" string="Experiences in the Website Menu"
+                                 help="Keep a Tours menu with one entry per published experience.">
+                            <field name="tour_auto_menu"/>
+                            <div class="text-muted mt-2">
+                                A Tours heading pointing at your catalogue, with
+                                every published experience listed under it, kept
+                                in step as you publish, rename and reorder them.
+                                Unpublished experiences are left out — their page
+                                answers 404 until you publish it.
+                                <br/>
+                                Switch it off if you would rather lay the menu
+                                out yourself; the entries this made are removed
+                                and nothing you wrote by hand is touched.
+                            </div>
+                        </setting>
+                    </block>
                     <block title="Widgets" name="tour_embed_container">
                         <setting id="tour_embed_domains" string="Allowed Embed Domains"
                                  help="Which websites may embed your booking widgets.">

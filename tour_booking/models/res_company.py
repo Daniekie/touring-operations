@@ -39,6 +39,18 @@ class ResCompany(models.Model):
              "money lands, and this is who carries that drift.",
     )
 
+    # On by default: an operator who publishes a tour means for people to find
+    # it, and the alternative is adding every entry by hand and renaming it by
+    # hand afterwards. Off is for the operator who has laid out their own menu
+    # and does not want it rearranged under them.
+    tour_auto_menu = fields.Boolean(
+        string="Experiences in the Website Menu",
+        default=True,
+        help="Keep a Tours menu on the website with one entry per published "
+             "experience. Unpublished experiences are left out: their page "
+             "answers 404, and a menu entry that 404s is worse than none.",
+    )
+
     tour_embed_domains = fields.Char(
         string="Allowed Embed Domains",
         help="Websites allowed to embed your booking widgets, comma "
@@ -46,6 +58,17 @@ class ResCompany(models.Model):
              "Leave empty to let any site embed them, which is usually what "
              "you want for a public catalogue.",
     )
+
+    def write(self, vals):
+        """Switching the menu setting rebuilds the menu there and then.
+
+        Otherwise the change appears to have done nothing until the next time
+        somebody touches a tour, which reads as a broken setting.
+        """
+        result = super().write(vals)
+        if "tour_auto_menu" in vals:
+            self.env["website.menu"].sudo()._tour_sync()
+        return result
 
     def _tour_fx_rate(self, from_currency, date=None):
         """Settlement currency per unit of `from_currency`. -> float.

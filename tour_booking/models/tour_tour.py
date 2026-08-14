@@ -3,6 +3,10 @@ from markupsafe import Markup
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
+# What the website menu is built from. Writing anything else cannot change the
+# menu, so it does not pay for a rebuild.
+MENU_FIELDS = ("name", "is_published", "sequence", "active", "company_id")
+
 
 class TourTour(models.Model):
     """The sellable experience: a dive, a boat trip, a day out.
@@ -222,7 +226,21 @@ class TourTour(models.Model):
             tour.message_post(body=Markup("%s <a href=\"%s\">%s</a>") % (
                 _("Website page created:"), tour.website_url, tour.website_full_url,
             ))
+        self.env["website.menu"].sudo()._tour_sync()
         return tours
+
+    def write(self, vals):
+        result = super().write(vals)
+        if any(field in vals for field in MENU_FIELDS):
+            self.env["website.menu"].sudo()._tour_sync()
+        return result
+
+    def unlink(self):
+        """The entry itself goes with the tour — `tour_id` cascades. This is
+        for the numbering of the ones that are left."""
+        result = super().unlink()
+        self.env["website.menu"].sudo()._tour_sync()
+        return result
 
     def action_confirm(self):
         """Save, and say where the page went.

@@ -26,6 +26,12 @@ class ResConfigSettings(models.TransientModel):
         readonly=False,
     )
 
+    tour_auto_menu = fields.Boolean(
+        related="company_id.tour_auto_menu",
+        string="Experiences in the Website Menu",
+        readonly=False,
+    )
+
     # Empty by default. A lock-down that has to be configured before the
     # feature works is a lock-down people disable; this one only exists for the
     # operator who has a reason to want it.

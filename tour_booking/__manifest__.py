@@ -56,6 +56,9 @@ There is deliberately no channel synchronisation with any OTA.
         # After website_templates: the checkout reuses the summary card and the
         # confirmation page links back to the tour page declared there.
         "views/website_checkout_templates.xml",
+        # Last: it builds the website menu from whatever is published, so it
+        # wants the rest of the module already in place.
+        "data/website_menu_data.xml",
     ],
     "demo": [
         "demo/tour_demo.xml",

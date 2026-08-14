@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Build the menu on install, and again on every upgrade.
+
+        A `<function>` rather than a `post_init_hook`, which runs only the first
+        time: the tours that most need an entry are the ones already published
+        on a running instance, and they exist before this feature does. Running
+        it on every update is safe because `_tour_sync` reconciles rather than
+        appends — it is the same call every tour write makes.
+    -->
+    <function model="website.menu" name="_tour_sync"/>
+
+</odoo>

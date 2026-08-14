@@ -15,3 +15,4 @@ from . import tour_booking_answer
 from . import payment_transaction
 from . import tour_embed
 from . import tour_demo
+from . import website_menu

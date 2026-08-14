@@ -17,3 +17,4 @@ from . import test_pricing
 from . import test_questions
 from . import test_reaper
 from . import test_website
+from . import test_website_menu
