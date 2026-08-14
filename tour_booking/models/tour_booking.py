@@ -148,13 +148,18 @@ class TourBooking(models.Model):
     # The policy is snapshotted, not read through the tour. Editing a policy
     # must never silently rewrite the terms of a booking already sold.
     cancellation_policy_id = fields.Many2one(
-        "tour.cancellation.policy", string="Cancellation Policy", readonly=True
+        "tour.cancellation.policy",
+        string="Cancellation Policy",
+        readonly=True,
+        # Not `set null`, which is the default and which would take the terms of
+        # the sale away with the policy record.
+        ondelete="restrict",
     )
     cancelled_on = fields.Datetime(readonly=True, copy=False)
-    refund_percent = fields.Float(compute="_compute_refund", store=True)
+    # Written once, by `action_cancel`, and never recomputed. See there.
+    refund_percent = fields.Float(readonly=True, copy=False)
     refund_amount = fields.Monetary(
-        compute="_compute_refund", store=True,
-        currency_field="settlement_currency_id",
+        readonly=True, copy=False, currency_field="settlement_currency_id",
     )
 
     # --- Computes ----------------------------------------------------------
@@ -253,40 +258,35 @@ class TourBooking(models.Model):
                 tx.amount for tx in booking.transaction_ids if tx.state == "done"
             )
 
-    @api.depends(
-        "cancelled_on",
-        "amount_paid",
-        "charged_amount",
-        "amount_settlement",
-        "cancellation_policy_id",
-        "cancellation_policy_id.rule_ids.hours_before",
-        "cancellation_policy_id.rule_ids.refund_percent",
-        "departure_id.start_datetime",
-    )
-    def _compute_refund(self):
-        """What was actually refundable, for a booking that was cancelled.
+    def _refund_values(self, when):
+        """What is refundable for a cancellation at `when`. -> dict of values.
 
-        Every input is stored, which is the only reason storing the result is
-        sound. A version of this that read `fields.Datetime.now()` would freeze
-        at whatever it happened to be when the row was last written and then
-        misreport for the rest of the booking's life. The "if you cancel now you
-        would get X" figure a guest sees *before* deciding is a different thing
-        entirely, and is not a field: see `_refund_preview`.
+        A record of what happened, written once by `action_cancel` and never
+        touched again. It used to be a stored compute, which sounded sound —
+        every input was itself stored — but two of those inputs were the
+        policy's own windows, so editing a policy rewrote the refund of every
+        booking ever cancelled under it, months after the guest was told the
+        figure and possibly after the money was sent. Deleting the windows set
+        it to zero.
 
         The percentage applies to what was actually paid, not to what was
         invoiced. A guest who cancels a booking they never paid for is owed
         nothing, whatever the policy says.
+
+        The "if you cancel now you would get X" figure a guest sees *before*
+        deciding is a different thing entirely, and is not a field: see
+        `_refund_preview`.
         """
-        for booking in self:
-            if not booking.cancelled_on or not booking.cancellation_policy_id:
-                booking.refund_percent = 0.0
-                booking.refund_amount = 0.0
-                continue
-            percent = booking.cancellation_policy_id._refund_percent_at(
-                booking.departure_id.start_datetime, booking.cancelled_on
-            )
-            booking.refund_percent = percent
-            booking.refund_amount = booking._refundable_base() * percent / 100.0
+        self.ensure_one()
+        if not self.cancellation_policy_id:
+            return {"refund_percent": 0.0, "refund_amount": 0.0}
+        percent = self.cancellation_policy_id._refund_percent_at(
+            self.departure_id.start_datetime, when
+        )
+        return {
+            "refund_percent": percent,
+            "refund_amount": self._refundable_base() * percent / 100.0,
+        }
 
     def _refundable_base(self):
         """The figure a refund is a percentage of. -> float, settlement currency.
@@ -610,6 +610,10 @@ class TourBooking(models.Model):
     def action_cancel(self):
         """Cancel, returning the seats and recording what was refundable.
 
+        The refund is worked out here, against this moment, and written down.
+        This is the only place it is ever decided; nothing recomputes it
+        afterwards, whatever happens to the policy it was decided under.
+
         Refused once the departure has run. Someone opening their booking the
         day after the dive must not be able to trigger a refund calculation at
         all, let alone the full one the widest policy window would hand them.
@@ -623,7 +627,11 @@ class TourBooking(models.Model):
                     "This departure has already run, so the booking can no "
                     "longer be cancelled."
                 ))
-            booking.write({"state": "cancelled", "cancelled_on": now})
+            booking.write(dict(
+                booking._refund_values(now),
+                state="cancelled",
+                cancelled_on=now,
+            ))
         self.departure_id._sync_full_state()
         return True
 

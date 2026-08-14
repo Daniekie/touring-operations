@@ -1,7 +1,10 @@
 from datetime import timedelta
 
+from psycopg2 import IntegrityError
+
 from odoo import fields
 from odoo.exceptions import UserError
+from odoo.tools import mute_logger
 
 from .common import TourCase
 
@@ -81,6 +84,52 @@ class TestCancellation(TourCase):
 
         self.assertEqual(booking.refund_percent, 0.0)
         self.assertEqual(booking.refund_amount, 0.0)
+
+    def test_editing_the_policy_does_not_rewrite_a_refund_already_worked_out(self):
+        """The booking keeps the policy record; it has to keep the *terms* too.
+
+        Keeping the policy but reading its windows live means the figure moves
+        whenever somebody edits them — months after the guest was told what they
+        were getting back, and after the money may already have been sent.
+        """
+        departure = self._departure(
+            start_datetime=fields.Datetime.now() + timedelta(hours=72)
+        )
+        booking = self._paid_booking(departure)
+        booking.action_cancel()
+        self.assertEqual(booking.refund_percent, 100.0)
+        refunded = booking.refund_amount
+
+        self.policy.rule_ids.filtered(lambda r: r.hours_before == 48).refund_percent = 10.0
+
+        self.assertEqual(booking.refund_percent, 100.0)
+        self.assertEqual(booking.refund_amount, refunded)
+
+    def test_deleting_the_policys_windows_does_not_erase_a_refund(self):
+        departure = self._departure(
+            start_datetime=fields.Datetime.now() + timedelta(hours=72)
+        )
+        booking = self._paid_booking(departure)
+        booking.action_cancel()
+        refunded = booking.refund_amount
+
+        self.policy.rule_ids.unlink()
+
+        self.assertEqual(booking.refund_percent, 100.0)
+        self.assertEqual(booking.refund_amount, refunded)
+
+    def test_a_policy_a_booking_was_sold_under_cannot_be_deleted(self):
+        """`ondelete='set null'` would take the terms of the sale with it."""
+        booking = self._booking(pax=1)
+        self.assertEqual(booking.cancellation_policy_id, self.policy)
+
+        # Savepoint and mute for the same reasons as everywhere else a
+        # constraint is provoked on purpose: the violation aborts the
+        # transaction, and `odoo.sql_db` logs the failing statement at ERROR
+        # whether or not the caller was expecting it.
+        with mute_logger("odoo.sql_db"), self.assertRaises(IntegrityError):
+            with self.env.cr.savepoint():
+                self.policy.unlink()
 
     def test_no_refund_is_calculated_for_a_booking_that_was_never_cancelled(self):
         booking = self._paid_booking(self._departure())
