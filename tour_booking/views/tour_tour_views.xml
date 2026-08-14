@@ -94,6 +94,8 @@
                             class="btn-primary" invisible="id"/>
                     <button name="action_view_departures" type="object"
                             string="Calendar" class="oe_highlight" invisible="not id"/>
+                    <button name="action_share" type="object"
+                            string="Put on a website" invisible="not id"/>
                 </header>
                 <sheet>
                     <!-- `id` has to be on the form for the expressions above and

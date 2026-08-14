@@ -22,6 +22,19 @@
                             </div>
                         </setting>
                     </block>
+                    <block title="Widgets" name="tour_embed_container">
+                        <setting id="tour_embed_domains" string="Allowed Embed Domains"
+                                 help="Which websites may embed your booking widgets.">
+                            <field name="tour_embed_domains"
+                                   placeholder="https://example.com, https://www.example.com"/>
+                            <div class="text-muted mt-2">
+                                Leave empty and any site may embed them, which
+                                is normally what you want — the widgets show a
+                                public catalogue. Fill it in and browsers will
+                                refuse to display your widgets anywhere else.
+                            </div>
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>

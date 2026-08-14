@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!--
+    Every control writes a `data-` attribute and then reloads the block, because
+    the block's content comes from the server: changing which experience it
+    shows is a different fetch, not a different class.
+-->
+
+<t t-name="tour_booking.TourExperiencesOption">
+    <BuilderRow label.translate="Cards per row">
+        <BuilderSelect action="'reloadTourSnippet'" dataAttributeAction="'tourColumns'">
+            <BuilderSelectItem dataAttributeActionValue="'1'">1</BuilderSelectItem>
+            <BuilderSelectItem dataAttributeActionValue="'2'">2</BuilderSelectItem>
+            <BuilderSelectItem dataAttributeActionValue="'3'">3</BuilderSelectItem>
+            <BuilderSelectItem dataAttributeActionValue="'4'">4</BuilderSelectItem>
+        </BuilderSelect>
+    </BuilderRow>
+    <BuilderRow label.translate="Show at most"
+                tooltip.translate="Leave empty to show every published experience.">
+        <BuilderNumberInput action="'reloadTourSnippet'" dataAttributeAction="'tourLimit'"
+                            min="0" step="1"/>
+    </BuilderRow>
+</t>
+
+<t t-name="tour_booking.TourExperienceOption">
+    <BuilderRow label.translate="Experience">
+        <BuilderSelect action="'reloadTourSnippet'" dataAttributeAction="'tourId'">
+            <BuilderSelectItem t-foreach="tours.records" t-as="tour" t-key="tour.id"
+                               dataAttributeActionValue="String(tour.id)">
+                <t t-out="tour.name"/>
+            </BuilderSelectItem>
+        </BuilderSelect>
+    </BuilderRow>
+</t>
+
+<t t-name="tour_booking.TourBookButtonOption">
+    <BuilderRow label.translate="Cards per row">
+        <BuilderSelect action="'reloadTourSnippet'" dataAttributeAction="'tourColumns'">
+            <BuilderSelectItem dataAttributeActionValue="'2'">2</BuilderSelectItem>
+            <BuilderSelectItem dataAttributeActionValue="'3'">3</BuilderSelectItem>
+            <BuilderSelectItem dataAttributeActionValue="'4'">4</BuilderSelectItem>
+        </BuilderSelect>
+    </BuilderRow>
+</t>
+
+</templates>

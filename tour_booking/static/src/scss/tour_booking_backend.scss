@@ -24,3 +24,12 @@
     }
 
 }
+
+// The generated embed code in the Put-on-a-website wizard. Monospace because
+// it is code, and somebody is going to read it to check they copied the right
+// experience id.
+.o_tour_embed_code textarea {
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: .8125rem;
+    white-space: pre;
+}

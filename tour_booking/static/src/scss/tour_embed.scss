@@ -1,0 +1,25 @@
+// The widgets, wherever they end up: a website block, or an iframe on somebody
+// else's page.
+
+// Inside a frame there is no site around the content, so the page provides its
+// own breathing room and nothing else. Deliberately no colours, fonts or
+// borders: the host site's own design shows through the frame's edges, and a
+// widget that insists on its own look is a widget that clashes with every
+// theme it is pasted into.
+#wrapwrap.o_tour_embed {
+    min-height: 0;
+
+    .o_tour_embed_wrap {
+        padding: 0;
+    }
+}
+
+// A block whose experience has not been chosen yet. Only ever seen by an
+// operator in the editor, and only until they pick one.
+.o_tour_snippet_empty {
+    padding: 2rem;
+    border: 1px dashed var(--o-gray-400, #ced4da);
+    border-radius: .5rem;
+    text-align: center;
+    color: var(--o-gray-600, #6c757d);
+}

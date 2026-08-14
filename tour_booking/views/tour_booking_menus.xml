@@ -84,6 +84,11 @@
               sequence="90"
               groups="tour_booking.group_tour_manager"/>
 
+    <menuitem id="menu_tour_embed" name="Put on a website"
+              parent="menu_tour_config"
+              action="tour_embed_action"
+              sequence="10"/>
+
     <menuitem id="menu_tour_policies" name="Cancellation Policies"
               parent="menu_tour_config"
               action="tour_cancellation_policy_action"

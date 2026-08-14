@@ -183,6 +183,15 @@ class TourTour(models.Model):
         """
         return True
 
+    def action_share(self):
+        """The code for putting this experience on a website.
+
+        On the wizard rather than here so the same screen serves the catalogue
+        and the button, which belong to no single tour.
+        """
+        self.ensure_one()
+        return self.env["tour.embed"].action_open(tour_id=self.id)
+
     def action_view_departures(self):
         self.ensure_one()
         return {

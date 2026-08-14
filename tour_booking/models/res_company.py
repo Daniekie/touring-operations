@@ -14,3 +14,11 @@ class ResCompany(models.Model):
              "generated months ahead, so this is what keeps a 09:00 tour at "
              "09:00 local on both sides of a daylight saving change.",
     )
+
+    tour_embed_domains = fields.Char(
+        string="Allowed Embed Domains",
+        help="Websites allowed to embed your booking widgets, comma "
+             "separated — https://example.com, https://www.example.com. "
+             "Leave empty to let any site embed them, which is usually what "
+             "you want for a public catalogue.",
+    )

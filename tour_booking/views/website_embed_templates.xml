@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        The pages that live inside somebody else's iframe.
+
+        `website.layout` is kept rather than a bare document: it carries the
+        frontend asset bundle the calendar needs, and hand-rolling that here
+        would mean maintaining a second list of what the widget depends on. Its
+        header and footer are switched off by the controller, so the frame holds
+        the widget and none of the surrounding site.
+
+        `o_tour_embed` is what starts the in-frame script — the one that reports
+        the height and diverts Book now to a first-party page.
+    -->
+
+    <template id="embed_layout" name="Embed Layout">
+        <t t-call="website.layout">
+            <t t-set="pageName" t-value="'o_tour_embed'"/>
+            <div id="wrap" class="o_tour_embed_wrap">
+                <div class="container-fluid py-3">
+                    <t t-out="0"/>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="embed_experiences" name="Embedded Experiences">
+        <t t-call="tour_booking.embed_layout">
+            <t t-call="tour_booking.experience_grid"/>
+        </t>
+    </template>
+
+    <template id="embed_experience" name="Embedded Experience">
+        <t t-call="tour_booking.embed_layout">
+            <!-- A card in the catalogue navigates the frame to here. Without a
+                 way back the guest is stranded inside a box on somebody else's
+                 page, with no browser chrome to press Back with.
+
+                 Only when they came from the catalogue: an operator who
+                 embedded one experience on purpose did not ask for a link to
+                 all the others. -->
+            <p t-if="from_list" class="mb-3">
+                <a href="/tour/embed/experiences" class="o_tour_embed_back">
+                    <i class="fa fa-angle-left me-1"/>All experiences
+                </a>
+            </p>
+            <t t-call="tour_booking.experience_detail"/>
+        </t>
+    </template>
+
+    <!-- Just the calendar and the party size, for a site that already sells the
+         experience in its own words. -->
+    <template id="embed_book" name="Embedded Booking Box">
+        <t t-call="tour_booking.embed_layout">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-8 col-lg-6">
+                    <t t-call="tour_booking.booking_widget"/>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>

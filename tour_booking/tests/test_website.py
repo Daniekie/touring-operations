@@ -41,7 +41,7 @@ class TestWebsite(HttpCase, TourCase):
         body = response.text
         self.assertIn("Blue Hole Dive", body)
         self.assertIn(
-            "col-lg-6", body,
+            "col-md-6", body,
             "The grid must be two cards per row, not full-width rows.",
         )
 

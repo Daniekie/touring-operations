@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        The four widgets, for an operator whose site is the Odoo one. Same
+        fragments as the external embed, but rendered straight into the page —
+        no iframe, no loader — because a page on the same instance already has
+        the visitor's session, so the booking form can simply post.
+
+        Every one of these is a shell: `data-` attributes and an empty div. It
+        has to be. The website editor saves the *rendered* DOM of a dropped
+        block, so a `t-call` written here would be expanded once, at drop time,
+        and frozen into the page — a new experience would never appear, and last
+        season's prices would sit there until somebody noticed. The content is
+        fetched instead, on every page load, by `tour_booking.snippet`.
+    -->
+
+    <template id="s_tour_experiences" name="Experiences">
+        <section class="s_tour_experiences s_tour_dynamic pt32 pb32"
+                 data-tour-widget="experiences" data-tour-columns="2">
+            <div class="container">
+                <div class="o_tour_snippet_content"/>
+            </div>
+        </section>
+    </template>
+
+    <template id="s_tour_experience" name="Experience">
+        <section class="s_tour_experience s_tour_dynamic pt32 pb32"
+                 data-tour-widget="experience">
+            <div class="container">
+                <div class="o_tour_snippet_content"/>
+            </div>
+        </section>
+    </template>
+
+    <!-- For a page that already sells the experience in its own words and just
+         needs somewhere to buy it. -->
+    <template id="s_tour_book" name="Booking Box">
+        <section class="s_tour_book s_tour_dynamic pt32 pb32"
+                 data-tour-widget="book">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-12 col-md-8 col-lg-5">
+                        <div class="o_tour_snippet_content"/>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <template id="s_tour_book_button" name="Book Now Button">
+        <section class="s_tour_book_button s_tour_dynamic pt32 pb32 text-center"
+                 data-tour-widget="button" data-tour-columns="3">
+            <div class="container">
+                <button type="button" class="btn btn-primary btn-lg o_tour_book_open">
+                    Book now
+                </button>
+                <div class="modal fade o_tour_book_modal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Choose an experience</h5>
+                                <button type="button" class="btn-close"
+                                        data-bs-dismiss="modal" aria-label="Close"/>
+                            </div>
+                            <div class="modal-body text-start o_tour_snippet_content"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- ==================== Registration ==================== -->
+    <!--
+        `catalog` is the group the block picker shows as Catalog — the same one
+        e-commerce puts Products in, which is where somebody looking for "the
+        thing that lists what I sell" will go.
+    -->
+
+    <template id="snippets" inherit_id="website.snippets" name="Tour Booking snippets">
+        <xpath expr="//snippets[@id='snippet_structure']" position="inside">
+            <t t-snippet="tour_booking.s_tour_experiences" string="Experiences"
+               group="catalog"
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experiences.svg"/>
+            <t t-snippet="tour_booking.s_tour_experience" string="Experience"
+               group="catalog"
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experience.svg"/>
+            <t t-snippet="tour_booking.s_tour_book" string="Booking Box"
+               group="catalog"
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book.svg"/>
+            <t t-snippet="tour_booking.s_tour_book_button" string="Book Now Button"
+               group="catalog"
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book_button.svg"/>
+        </xpath>
+    </template>
+
+</odoo>

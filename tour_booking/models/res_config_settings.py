@@ -14,3 +14,12 @@ class ResConfigSettings(models.TransientModel):
         string="Tour Timezone",
         readonly=False,
     )
+
+    # Empty by default. A lock-down that has to be configured before the
+    # feature works is a lock-down people disable; this one only exists for the
+    # operator who has a reason to want it.
+    tour_embed_domains = fields.Char(
+        related="company_id.tour_embed_domains",
+        string="Allowed Embed Domains",
+        readonly=False,
+    )

@@ -44,9 +44,15 @@ There is deliberately no channel synchronisation with any OTA.
         "views/tour_departure_views.xml",
         "views/tour_booking_views.xml",
         "views/tour_calendar_views.xml",
+        "views/tour_embed_views.xml",
         "views/tour_booking_menus.xml",
         "views/res_config_settings_views.xml",
+        # The fragments first: everything below draws the public markup by
+        # calling into them, and a template cannot be called before it exists.
+        "views/website_fragments.xml",
         "views/website_templates.xml",
+        "views/website_embed_templates.xml",
+        "views/snippets/tour_snippets.xml",
         # After website_templates: the checkout reuses the summary card and the
         # confirmation page links back to the tour page declared there.
         "views/website_checkout_templates.xml",
@@ -65,8 +71,19 @@ There is deliberately no channel synchronisation with any OTA.
         # into the web client would cost every internal user the download.
         "web.assets_frontend": [
             "tour_booking/static/src/scss/tour_booking.scss",
-            "tour_booking/static/src/js/tour_calendar.js",
+            "tour_booking/static/src/scss/tour_embed.scss",
+            "tour_booking/static/src/js/interactions/tour_calendar.js",
+            "tour_booking/static/src/js/interactions/tour_snippet.js",
+            "tour_booking/static/src/js/interactions/embed_frame.js",
         ],
+        # The option panels for the booking blocks. Editor-only, so they cost
+        # a visitor nothing.
+        "website.website_builder_assets": [
+            "tour_booking/static/src/website_builder/**/*",
+        ],
+        # The loader is deliberately absent from every bundle. It runs on other
+        # people's websites, where there is no Odoo to bundle it, and it is
+        # served as a plain file by `/tour/embed.js`.
     },
     "installable": True,
     "application": True,

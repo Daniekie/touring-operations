@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tour_embed_view_form" model="ir.ui.view">
+        <field name="name">tour.embed.form</field>
+        <field name="model">tour.embed</field>
+        <field name="arch" type="xml">
+            <form string="Put this on a website">
+                <div class="alert alert-info" role="alert">
+                    For your <strong>own Odoo website</strong> you do not need
+                    any of this — edit the page and drag one of the
+                    <strong>Experiences</strong>, <strong>Booking Box</strong> or
+                    <strong>Book Now</strong> blocks out of the
+                    <strong>Catalog</strong> category.
+                    <br/>
+                    The code below is for a site you keep somewhere else.
+                </div>
+
+                <group>
+                    <group>
+                        <field name="widget_type" widget="radio"/>
+                    </group>
+                    <group>
+                        <field name="tour_id"
+                               options="{'no_create': True}"
+                               invisible="widget_type not in ('experience', 'book')"
+                               required="widget_type in ('experience', 'book')"/>
+                        <field name="columns"
+                               invisible="widget_type not in ('experiences', 'button')"/>
+                        <field name="label" invisible="widget_type != 'button'"/>
+                    </group>
+                </group>
+
+                <group string="Paste this into your site">
+                    <!-- The same field twice: a readonly box so it can be read,
+                         and the clipboard button, which is the only variant
+                         that takes a Text field. The code is two lines, so a
+                         single-line Char widget would hide half of it. -->
+                    <field name="code" nolabel="1" readonly="1"
+                           class="o_tour_embed_code"/>
+                    <field name="code" widget="CopyClipboardButton"
+                           string="Copy" nolabel="1"/>
+                    <field name="preview_url" invisible="1"/>
+                </group>
+
+                <div class="text-muted">
+                    Guests browse inside the widget. Pressing <strong>Book
+                    now</strong> opens the booking on your own site in a new
+                    tab, which is what lets the payment go through — a
+                    checkout running inside somebody else's page loses its
+                    session in Safari and Firefox.
+                </div>
+
+                <footer>
+                    <button name="action_open_preview" type="object"
+                            string="Preview" class="btn-primary"
+                            invisible="not preview_url"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="tour_embed_action" model="ir.actions.act_window">
+        <field name="name">Put this on a website</field>
+        <field name="res_model">tour.embed</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

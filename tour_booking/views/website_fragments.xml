@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        The three pieces of public markup, in one place.
+
+        Each of these is drawn in four different contexts: the module's own
+        pages, a website snippet dropped by an operator, an iframe on somebody
+        else's site, and the modal behind a Book now button. They were inline in
+        `website_templates.xml` when there was only one caller. A second copy is
+        how a card ends up showing the right price on the tour page and a stale
+        one in the embed, so there is exactly one.
+
+        `link_target` is the whole embed mechanism. On an Odoo site it is
+        `_self` and links behave normally. Inside a cross-origin iframe it is
+        `_top` or `_blank`, so a click leaves the frame instead of navigating a
+        300-pixel box. Callers set it; the markup never decides.
+    -->
+
+    <!-- ==================== One card ==================== -->
+
+    <template id="experience_card" name="Experience Card">
+        <t t-set="link_target" t-value="link_target or '_self'"/>
+        <!-- Inside a frame a card stays in the frame, on the embedded version
+             of the experience. The operator embedded this to keep visitors on
+             their own page; throwing a new tab at somebody who clicked a
+             picture undoes that. Only Book now leaves, and it has to. -->
+        <t t-set="card_url"
+           t-value="'/tour/embed/experience/%s?from=list' % tour.id
+                    if embedded else tour.website_url"/>
+        <t t-set="card_target" t-value="'_self' if embedded else link_target"/>
+        <div class="card h-100 o_tour_card">
+            <a t-att-href="card_url" t-att-target="card_target"
+               class="text-decoration-none">
+                <img t-if="tour.image_1920"
+                     t-attf-src="/web/image/tour.tour/#{tour.id}/image_1920"
+                     class="card-img-top o_tour_card_img"
+                     t-att-alt="tour.name"/>
+            </a>
+            <div class="card-body d-flex flex-column">
+                <h4 class="card-title">
+                    <a t-att-href="card_url" t-att-target="card_target"
+                       class="text-decoration-none"
+                       t-field="tour.name"/>
+                </h4>
+                <div class="text-muted mb-2">
+                    <i class="fa fa-clock-o me-1"/>
+                    <span t-field="tour.duration_display"/>
+                    <t t-if="tour.location_id">
+                        <span class="mx-2">·</span>
+                        <i class="fa fa-map-marker me-1"/>
+                        <span t-field="tour.location_id.name"/>
+                    </t>
+                </div>
+                <div class="mt-auto d-flex align-items-center justify-content-between">
+                    <!-- The actual price, not "from": there is one price per
+                         tour, so a "from" would hedge against a variation that
+                         cannot exist. -->
+                    <span class="h5 mb-0">
+                        <span t-field="tour.price_per_person"
+                              t-options="{'widget': 'monetary', 'display_currency': tour.currency_id}"/>
+                        <small class="text-muted"> per person</small>
+                    </span>
+                    <a t-att-href="card_url" t-att-target="card_target"
+                       class="btn btn-primary">
+                        More info
+                    </a>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- ==================== The grid ==================== -->
+
+    <template id="experience_grid" name="Experience Grid">
+        <!-- Two per row by default: deliberately not full-width rows, which
+             read as a list rather than a catalogue. A snippet can ask for
+             three or four.
+
+             The breakpoints are `md`, not `lg`, and that is not a style
+             preference. This grid spends most of its life inside an iframe or a
+             page column, and a media query inside an iframe measures the
+             *frame*, not the screen. A 900-pixel column on somebody's website
+             is a wide, comfortable place for two cards and a narrow one for
+             `col-lg-6`, which needs 992 — so `lg` would collapse almost every
+             embed to a single column on a desktop monitor. -->
+        <t t-set="columns" t-value="columns or 2"/>
+        <t t-set="column_class"
+           t-value="{1: 'col-12', 2: 'col-12 col-md-6', 3: 'col-12 col-sm-6 col-lg-4',
+                     4: 'col-12 col-sm-6 col-lg-3'}.get(columns, 'col-12 col-md-6')"/>
+
+        <div t-if="not tours" class="alert alert-info">
+            No tours are published yet.
+        </div>
+
+        <div class="row g-4 o_tour_experience_grid">
+            <div t-foreach="tours" t-as="tour" t-att-class="column_class">
+                <t t-call="tour_booking.experience_card"/>
+            </div>
+        </div>
+    </template>
+
+    <!-- ==================== One experience, compact ==================== -->
+
+    <template id="experience_detail" name="Experience Detail">
+        <!-- The version that goes inside a block or a frame: enough to decide,
+             and a link out for the rest.
+
+             Deliberately not the whole tour page. Itinerary, inclusions and
+             cancellation terms belong on the page that owns them; a second copy
+             embedded in somebody else's site is a copy that will disagree with
+             the first one within a season. -->
+        <div class="row g-4 o_tour_experience_detail">
+            <div class="col-12 col-lg-7">
+                <img t-if="tour.image_1920"
+                     t-attf-src="/web/image/tour.tour/#{tour.id}/image_1920"
+                     class="img-fluid rounded mb-3"
+                     t-att-alt="tour.name"/>
+                <h2 t-field="tour.name"/>
+                <div class="text-muted mb-3">
+                    <i class="fa fa-clock-o me-1"/>
+                    <span t-field="tour.duration_display"/>
+                    <t t-if="tour.location_id">
+                        <span class="mx-2">·</span>
+                        <i class="fa fa-map-marker me-1"/>
+                        <span t-field="tour.location_id.name"/>
+                    </t>
+                </div>
+                <div t-field="tour.description"/>
+                <p class="mt-3">
+                    <a t-att-href="tour.website_url"
+                       t-att-target="link_target or '_self'"
+                       class="o_tour_detail_more">
+                        Full details
+                    </a>
+                </p>
+            </div>
+            <div class="col-12 col-lg-5">
+                <t t-call="tour_booking.booking_widget"/>
+            </div>
+        </div>
+    </template>
+
+    <!-- ==================== The booking widget ==================== -->
+
+    <template id="booking_widget" name="Booking Widget">
+        <t t-set="link_target" t-value="link_target or '_self'"/>
+        <!-- `preselect_*` come from the query string when a guest arrives from
+             an embedded frame having already chosen. The interaction reads them
+             off the dataset and restores the choice, so the first-party page
+             opens where they left off rather than at an empty calendar. -->
+        <div class="card o_tour_widget"
+             t-att-data-tour-id="tour.id"
+             t-att-data-tour-url="tour.website_url"
+             t-att-data-month="month.strftime('%Y-%m')"
+             t-att-data-preselect-departure="preselect_departure or None"
+             t-att-data-preselect-pax="preselect_pax or None"
+             t-att-data-autobook="'1' if autobook else None">
+            <div class="card-body">
+                <div class="h4">
+                    <span t-field="tour.price_per_person"
+                          t-options="{'widget': 'monetary', 'display_currency': tour.currency_id}"/>
+                    <small class="text-muted"> per person</small>
+                </div>
+
+                <form action="/tour/book" method="post" class="o_tour_book_form"
+                      t-att-target="link_target if link_target != '_self' else None">
+                    <input type="hidden" name="csrf_token"
+                           t-att-value="request.csrf_token()"/>
+                    <input type="hidden" name="departure_id"
+                           class="o_tour_departure_input"/>
+
+                    <!-- One month only. The horizon is a year, but a guest
+                         choosing a day out does not page through it. -->
+                    <div class="o_tour_calendar my-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <button type="button" class="btn btn-sm btn-light o_tour_prev">
+                                <i class="fa fa-chevron-left"/>
+                            </button>
+                            <strong class="o_tour_month_label"/>
+                            <button type="button" class="btn btn-sm btn-light o_tour_next">
+                                <i class="fa fa-chevron-right"/>
+                            </button>
+                        </div>
+                        <div class="o_tour_grid"/>
+                    </div>
+
+                    <!-- Revealed only when the chosen day offers more than one
+                         start time. -->
+                    <div class="o_tour_times mb-3 d-none">
+                        <label class="form-label">Start time</label>
+                        <div class="o_tour_time_options btn-group-vertical w-100"/>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="pax">Participants</label>
+                        <input type="number" name="pax" id="pax"
+                               class="form-control o_tour_pax"
+                               value="1" min="1"/>
+                        <small class="text-muted o_tour_seats_left"/>
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-primary w-100 o_tour_book_button"
+                            disabled="disabled">
+                        Book now
+                    </button>
+                    <div class="text-muted small mt-2 o_tour_hint">
+                        Pick a date to continue.
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
+
+</odoo>

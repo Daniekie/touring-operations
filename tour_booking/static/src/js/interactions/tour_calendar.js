@@ -1,65 +1,81 @@
-/** @odoo-module **/
-
-import publicWidget from "@web/legacy/js/public/public_widget";
+import { Interaction } from "@web/public/interaction";
+import { registry } from "@web/core/registry";
 import { rpc } from "@web/core/network/rpc";
 
 /**
- * The booking widget on a tour page.
+ * The booking widget: a month of dates, a start time, a party size.
  *
  * One month at a time, by design: a guest choosing a day out does not page
  * through a year, and the server only ever sends the month being looked at.
  *
- * What is bookable is decided entirely by the server. This widget renders the
- * days it is handed and nothing else — it has no idea what a cut-off is, and
- * cannot accidentally offer a departure the booking would then refuse.
+ * What is bookable is decided entirely by the server. This renders the days it
+ * is handed and nothing else — it has no idea what a cut-off is, and so cannot
+ * offer a departure the booking would then refuse.
+ *
+ * An Interaction rather than the old publicWidget: this markup is now a website
+ * snippet as well as a page, and an Interaction is what the builder starts when
+ * a block is dropped and restarts when the editor reloads.
  */
-publicWidget.registry.TourBookingWidget = publicWidget.Widget.extend({
-    selector: ".o_tour_widget",
-    events: {
-        "click .o_tour_prev": "_onPrevMonth",
-        "click .o_tour_next": "_onNextMonth",
-        "click .o_tour_day.available": "_onPickDay",
-        "click .o_tour_time_option": "_onPickTime",
-        "change .o_tour_pax": "_onChangePax",
-    },
+export class TourCalendar extends Interaction {
+    static selector = ".o_tour_widget";
 
-    async start() {
+    // Bound to the four containers rather than to the cells inside them. The
+    // cells are rewritten on every month change; the containers are not, so
+    // these listeners survive a re-render and nothing has to be re-bound.
+    dynamicContent = {
+        ".o_tour_prev": { "t-on-click": () => this.shiftMonth(-1) },
+        ".o_tour_next": { "t-on-click": () => this.shiftMonth(1) },
+        ".o_tour_grid": { "t-on-click": (ev) => this.onGridClick(ev) },
+        ".o_tour_time_options": { "t-on-click": (ev) => this.onTimeClick(ev) },
+        ".o_tour_pax": { "t-on-change": (ev) => this.onChangePax(ev) },
+    };
+
+    setup() {
         this.tourId = parseInt(this.el.dataset.tourId, 10);
         this.month = this.el.dataset.month;
         this.selected = null;
-        await this._load();
-        return this._super(...arguments);
-    },
+        this.days = {};
+        this.hasSpecificTime = true;
+    }
 
-    async _load() {
-        const result = await rpc(`/tour/${this.tourId}/availability`, {
-            month: this.month,
-        });
+    async willStart() {
+        await this.load();
+    }
+
+    start() {
+        this.restoreChoice();
+    }
+
+    // --- Data ---------------------------------------------------------------
+
+    async load() {
+        const result = await this.waitFor(
+            rpc(`/tour/${this.tourId}/availability`, { month: this.month })
+        );
         this.days = result.days || {};
         this.hasSpecificTime = result.has_specific_time;
-        this._renderMonth();
-    },
+        this.renderMonth();
+    }
 
-    _monthDate() {
+    monthDate() {
         const [year, month] = this.month.split("-").map(Number);
         return new Date(year, month - 1, 1);
-    },
+    }
 
-    _shiftMonth(delta) {
-        const date = this._monthDate();
+    async shiftMonth(delta) {
+        const date = this.monthDate();
         date.setMonth(date.getMonth() + delta);
         this.month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-        this._clearSelection();
-        return this._load();
-    },
+        this.clearSelection();
+        await this.load();
+    }
 
-    _renderMonth() {
-        const first = this._monthDate();
-        const label = first.toLocaleDateString(undefined, {
-            month: "long",
-            year: "numeric",
-        });
-        this.el.querySelector(".o_tour_month_label").textContent = label;
+    // --- Rendering ----------------------------------------------------------
+
+    renderMonth() {
+        const first = this.monthDate();
+        this.el.querySelector(".o_tour_month_label").textContent =
+            first.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
         const daysInMonth = new Date(
             first.getFullYear(), first.getMonth() + 1, 0
@@ -92,31 +108,31 @@ publicWidget.registry.TourBookingWidget = publicWidget.Widget.extend({
             }
             grid.appendChild(cell);
         }
-    },
+    }
 
-    _clearSelection() {
+    clearSelection() {
         this.selected = null;
-        this.el.querySelectorAll(".o_tour_day.selected").forEach((cell) => {
+        for (const cell of this.el.querySelectorAll(".o_tour_day.selected")) {
             cell.classList.remove("selected");
-        });
+        }
         this.el.querySelector(".o_tour_times").classList.add("d-none");
         this.el.querySelector(".o_tour_departure_input").value = "";
         this.el.querySelector(".o_tour_book_button").disabled = true;
         this.el.querySelector(".o_tour_seats_left").textContent = "";
         this.el.querySelector(".o_tour_hint").textContent = "Pick a date to continue.";
-    },
+    }
 
-    _onPrevMonth() {
-        this._shiftMonth(-1);
-    },
+    // --- Picking ------------------------------------------------------------
 
-    _onNextMonth() {
-        this._shiftMonth(1);
-    },
+    onGridClick(ev) {
+        const cell = ev.target.closest(".o_tour_day.available");
+        if (cell) {
+            this.pickDay(cell);
+        }
+    }
 
-    _onPickDay(event) {
-        const cell = event.currentTarget;
-        this._clearSelection();
+    pickDay(cell) {
+        this.clearSelection();
         cell.classList.add("selected");
 
         const departures = this.days[cell.dataset.date] || [];
@@ -142,25 +158,28 @@ publicWidget.registry.TourBookingWidget = publicWidget.Widget.extend({
             this.el.querySelector(".o_tour_hint").textContent =
                 "Pick a start time to continue.";
         } else if (departures.length) {
-            this._select(departures[0]);
+            this.select(departures[0]);
         }
-    },
+    }
 
-    _onPickTime(event) {
-        const button = event.currentTarget;
-        this.el.querySelectorAll(".o_tour_time_option").forEach((other) => {
+    onTimeClick(ev) {
+        const button = ev.target.closest(".o_tour_time_option");
+        if (!button) {
+            return;
+        }
+        for (const other of this.el.querySelectorAll(".o_tour_time_option")) {
             other.classList.remove("active");
-        });
+        }
         button.classList.add("active");
-        this._select({
+        this.select({
             id: parseInt(button.dataset.departureId, 10),
             seats_available: parseInt(button.dataset.seats, 10),
             min_pax: parseInt(button.dataset.minPax, 10),
             max_pax: parseInt(button.dataset.maxPax, 10),
         });
-    },
+    }
 
-    _select(departure) {
+    select(departure) {
         this.selected = departure;
         this.el.querySelector(".o_tour_departure_input").value = departure.id;
         this.el.querySelector(".o_tour_book_button").disabled = false;
@@ -181,18 +200,58 @@ publicWidget.registry.TourBookingWidget = publicWidget.Widget.extend({
         }
         this.el.querySelector(".o_tour_seats_left").textContent =
             `${departure.seats_available} seat(s) left`;
-    },
+    }
 
-    _onChangePax(event) {
+    onChangePax(ev) {
         if (!this.selected) {
             return;
         }
-        const input = event.currentTarget;
+        const input = ev.target;
         const max = Math.min(this.selected.max_pax, this.selected.seats_available);
         let value = parseInt(input.value, 10) || this.selected.min_pax;
-        value = Math.max(this.selected.min_pax, Math.min(value, max));
-        input.value = value;
-    },
-});
+        input.value = Math.max(this.selected.min_pax, Math.min(value, max));
+    }
 
-export default publicWidget.registry.TourBookingWidget;
+    // --- Arriving with a choice already made --------------------------------
+
+    /**
+     * A guest who pressed Book now in an embedded frame lands here, on the
+     * operator's own domain, with their date and party size in the URL. Putting
+     * them back on an empty calendar would make them choose twice.
+     *
+     * The server has already set the month to the departure's own, so it is in
+     * the data that has just loaded.
+     */
+    restoreChoice() {
+        const wanted = parseInt(this.el.dataset.preselectDeparture, 10);
+        if (!wanted) {
+            return;
+        }
+        for (const [date, departures] of Object.entries(this.days)) {
+            const departure = departures.find((d) => d.id === wanted);
+            if (!departure) {
+                continue;
+            }
+            const cell = this.el.querySelector(`.o_tour_day[data-date="${date}"]`);
+            if (cell) {
+                this.pickDay(cell);
+            }
+            this.select(departure);
+            const pax = parseInt(this.el.dataset.preselectPax, 10);
+            if (pax) {
+                const input = this.el.querySelector(".o_tour_pax");
+                input.value = pax;
+                input.dispatchEvent(new Event("change"));
+            }
+            if (this.el.dataset.autobook) {
+                // Submitted from here rather than from the frame it was chosen
+                // in: this page is first-party, so the CSRF token in the form
+                // is one the server will actually accept.
+                this.el.querySelector(".o_tour_book_form").submit();
+            }
+            return;
+        }
+    }
+}
+
+registry.category("public.interactions").add("tour_booking.tour_calendar", TourCalendar);
