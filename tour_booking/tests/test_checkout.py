@@ -169,6 +169,66 @@ class TestCheckout(HttpCase, TourCase):
             "A late callback confirmed a booking the guest had cancelled.",
         )
 
+    def test_a_payment_against_a_cancelled_departure_does_not_break_the_callback(self):
+        """The money is already taken by the time this runs.
+
+        Raising out of `_post_process` leaves the guest paid and unconfirmed,
+        rolls back everything the callback did, and hands the provider an error
+        it will retry forever. The booking cannot be confirmed — there is no
+        seat to confirm it onto — but that has to be recorded, not thrown.
+        """
+        booking = self._draft(pax=2)
+        self.env["tour.booking.answer"].create({
+            "booking_id": booking.id,
+            "question_id": self.hotel.id,
+            "value_char": "Hotel Bonaire",
+        })
+        transaction = self._paid(booking)
+        self.departure.action_cancel()
+
+        with mute_logger("odoo.addons.tour_booking.models.payment_transaction"):
+            transaction._post_process()
+
+        self.assertEqual(booking.state, "draft")
+        self.assertTrue(
+            booking.message_ids.filtered(lambda m: "could not be confirmed" in (m.body or "")),
+            "Nothing on the booking says a paid guest has no seat.",
+        )
+
+    def test_one_booking_that_cannot_confirm_does_not_hold_up_the_others(self):
+        """One transaction, several bookings: the failure has to be contained."""
+        first = self._draft(pax=1)
+        second = self._draft(pax=1)
+        for booking in (first, second):
+            self.env["tour.booking.answer"].create({
+                "booking_id": booking.id,
+                "question_id": self.hotel.id,
+                "value_char": "Hotel Bonaire",
+            })
+        transaction = self._paid(first)
+        transaction.tour_booking_ids = [(4, second.id)]
+        # Only the first one's departure is pulled out from under it.
+        doomed = self.env["tour.departure"].create({
+            "tour_id": self.tour.id,
+            "date": fields.Date.today() + timedelta(days=11),
+            "start_datetime": fields.Datetime.now() + timedelta(days=11),
+            "capacity": 10,
+            "min_pax": 1,
+            "max_pax": 6,
+        })
+        first.departure_id = doomed
+        doomed.action_cancel()
+
+        with mute_logger("odoo.addons.tour_booking.models.payment_transaction"):
+            transaction._post_process()
+
+        self.assertEqual(first.state, "draft")
+        self.assertEqual(
+            second.state, "confirmed",
+            "A guest with a perfectly good seat was left unconfirmed by "
+            "somebody else's cancelled departure.",
+        )
+
     def test_a_failed_payment_leaves_the_booking_in_draft(self):
         booking = self._draft(pax=2)
         transaction = self._transaction(booking, "error")
