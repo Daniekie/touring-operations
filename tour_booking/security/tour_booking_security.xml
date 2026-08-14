@@ -45,5 +45,52 @@
             <field name="perm_unlink" eval="False"/>
         </record>
 
+        <!--
+            One instance, several operators. Every model below carries a
+            company and none of them was constrained, so a desk user of one
+            company could read — and on `tour.booking`, write — another's
+            guests, prices, schedule and takings. On a single-company instance
+            that is invisible, which is the state every instance is in right up
+            until the day it is not.
+
+            Scoped to internal users rather than global on purpose. Everything
+            the public site reads it reads through `sudo()`, so a global rule
+            would protect nothing there while adding a way for a visitor to be
+            handed a 404 on a perfectly good page because the website's company
+            and the tour's company disagree. The exposure being closed here is
+            an internal one, and this is where it lives.
+
+            The `company_id = False` branch is the standard idiom and is kept
+            for the models that might one day allow it; today every one of them
+            requires a company.
+        -->
+        <record id="tour_tour_company_rule" model="ir.rule">
+            <field name="name">Experiences: own company only</field>
+            <field name="model_id" ref="model_tour_tour"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="tour_departure_company_rule" model="ir.rule">
+            <field name="name">Trips: own company only</field>
+            <field name="model_id" ref="model_tour_departure"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="tour_booking_company_rule" model="ir.rule">
+            <field name="name">Bookings: own company only</field>
+            <field name="model_id" ref="model_tour_booking"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="tour_extra_company_rule" model="ir.rule">
+            <field name="name">Extras: own company only</field>
+            <field name="model_id" ref="model_tour_extra"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
     </data>
 </odoo>

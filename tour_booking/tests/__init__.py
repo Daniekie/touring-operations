@@ -10,6 +10,7 @@ from . import test_currency
 from . import test_demo
 from . import test_embed
 from . import test_gallery
+from . import test_multi_company
 from . import test_embed_wizard
 from . import test_page_url
 from . import test_snippets
