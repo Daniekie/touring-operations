@@ -204,7 +204,9 @@
              t-att-data-preselect-pax="preselect_pax or None"
              t-att-data-autobook="'1' if autobook else None"
              t-att-data-price="tour.price_per_person"
-             t-att-data-currency="tour.currency_id.id">
+             t-att-data-currency="tour.currency_id.id"
+             t-att-data-settlement-currency="settlement_currency.id if settlement_currency else None"
+             t-att-data-settlement-rate="settlement_rate or None">
             <div class="card-body">
                 <form action="/tour/book" method="post" class="o_tour_book_form"
                       t-att-target="link_target if link_target != '_self' else None">
@@ -253,6 +255,13 @@
                             <span class="text-muted o_tour_total_label"/>
                             <strong class="h5 mb-0 o_tour_total_value"/>
                         </div>
+                        <!-- What the card will be charged, roughly, when that
+                             is a different currency. Approximate and said so:
+                             the rate is not fixed until Book now creates the
+                             booking, and a figure stated flatly here is the one
+                             a guest would hold us to. -->
+                        <div t-if="settlement_currency"
+                             class="text-muted small o_tour_total_settlement"/>
                         <small t-if="tour.tax_ids or tour.extra_ids" class="text-muted">
                             Extras and taxes are added at checkout.
                         </small>

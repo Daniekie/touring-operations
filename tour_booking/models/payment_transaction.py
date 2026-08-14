@@ -33,5 +33,12 @@ class PaymentTransaction(models.Model):
             bookings = transaction.tour_booking_ids.filtered(
                 lambda b: b.state == "draft"
             )
-            if bookings:
-                bookings.action_confirm()
+            if not bookings:
+                continue
+            bookings.action_confirm()
+            # After confirming, and only for the bookings this callback
+            # actually confirmed: what was charged is recorded once, by the
+            # callback that charged it. A retried webhook finds them confirmed
+            # and does not write the figure a second time.
+            for booking in bookings:
+                booking._record_charged_amount(transaction)

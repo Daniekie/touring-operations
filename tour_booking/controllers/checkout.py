@@ -108,21 +108,27 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
         return request.render("tour_booking.booking_confirmation", values)
 
     def _prepare_payment_values(self, booking_sudo):
-        """Everything `payment.form` needs to render itself."""
+        """Everything `payment.form` needs to render itself.
+
+        In the settlement currency, because that is what the transaction will be
+        raised in: a provider offered here for a dollar amount and then handed a
+        euro one is a provider that may not accept euros at all.
+        """
+        amount, currency = booking_sudo.payment_amount()
         providers_sudo = request.env["payment.provider"].sudo()._get_compatible_providers(
             booking_sudo.company_id.id,
             booking_sudo.partner_id.id,
-            booking_sudo.amount_total,
-            currency_id=booking_sudo.currency_id.id,
+            amount,
+            currency_id=currency.id,
         )
         payment_methods_sudo = request.env["payment.method"].sudo()._get_compatible_payment_methods(
             providers_sudo.ids,
             booking_sudo.partner_id.id,
-            currency_id=booking_sudo.currency_id.id,
+            currency_id=currency.id,
         )
         return {
-            "amount": booking_sudo.amount_total,
-            "currency": booking_sudo.currency_id,
+            "amount": amount,
+            "currency": currency,
             "partner_id": booking_sudo.partner_id.id,
             "providers_sudo": providers_sudo,
             "payment_methods_sudo": payment_methods_sudo,
@@ -186,6 +192,33 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
                     "extra_id": extra.id,
                     "quantity": quantity,
                 })
+
+    @http.route(
+        ["/tour/booking/<int:booking_id>/extras"],
+        type="jsonrpc", auth="public", website=True,
+    )
+    def extras(self, booking_id, access_token=None, **post):
+        """Re-price the booking against the extras chosen so far.
+        -> {"html": the summary card}
+
+        The quantities are **saved**, not merely quoted. A guest who ticks a
+        wetsuit and goes straight to the payment buttons without pressing Save
+        details would otherwise be charged for a booking that no longer matches
+        the total they are reading — and the total is the thing they remember.
+
+        Prices still come from `tour.extra` by way of `_save_extras`, and the
+        summary is the same template the page was rendered with, so a number
+        cannot be computed one way here and another way on reload.
+        """
+        booking_sudo = self._booking_from_token(booking_id, access_token)
+        if booking_sudo.state == "draft":
+            self._save_extras(booking_sudo, post)
+        return {
+            "html": request.env["ir.qweb"]._render(
+                "tour_booking.booking_summary",
+                {"booking": booking_sudo, "request": request},
+            ),
+        }
 
     def _save_answers(self, booking_sudo, post):
         booking_sudo.answer_ids.unlink()
@@ -253,10 +286,15 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
         booking_sudo._check_required_answers()
 
         self._validate_transaction_kwargs(kwargs)
+        # Amount and currency are re-derived here rather than taken from the
+        # browser, and they are the *settlement* pair: the provider is asked for
+        # euros it can settle, at a rate this booking fixed when it was created,
+        # so nothing is converted between here and the callback.
+        amount, currency = booking_sudo.payment_amount()
         kwargs.update({
             "partner_id": booking_sudo.partner_id.id,
-            "currency_id": booking_sudo.currency_id.id,
-            "amount": booking_sudo.amount_total,
+            "currency_id": currency.id,
+            "amount": amount,
         })
         transaction_sudo = self._create_transaction(
             custom_create_values={"tour_booking_ids": [Command.set([booking_sudo.id])]},

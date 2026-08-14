@@ -15,6 +15,17 @@ class ResConfigSettings(models.TransientModel):
         readonly=False,
     )
 
+    tour_settlement_currency_id = fields.Many2one(
+        related="company_id.tour_settlement_currency_id",
+        string="Settlement Currency",
+        readonly=False,
+    )
+    tour_fx_margin = fields.Float(
+        related="company_id.tour_fx_margin",
+        string="Exchange Margin (%)",
+        readonly=False,
+    )
+
     # Empty by default. A lock-down that has to be configured before the
     # feature works is a lock-down people disable; this one only exists for the
     # operator who has a reason to want it.

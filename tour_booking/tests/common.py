@@ -103,11 +103,16 @@ class TourCase(TransactionCase):
         `payment`'s own invariants.
         """
         provider = self.provider
+        # Amount and currency from `payment_amount()`, which is what the
+        # checkout controller raises a real transaction with. A helper that
+        # hardcoded the accounting currency would quietly test a flow no guest
+        # ever goes through once a settlement currency is configured.
+        amount, currency = booking.payment_amount()
         transaction = self.env["payment.transaction"].create({
             "provider_id": provider.id,
             "payment_method_id": provider.payment_method_ids[:1].id,
-            "amount": booking.amount_total,
-            "currency_id": booking.currency_id.id,
+            "amount": amount,
+            "currency_id": currency.id,
             "partner_id": booking.partner_id.id,
             "reference": reference or "test-%s-%s" % (booking.id, state),
         })

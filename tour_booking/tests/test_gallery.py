@@ -47,6 +47,16 @@ class TestGallery(HttpCase, TourCase):
         self.assertEqual(body.count('class="o_tour_photo d-none"'), 2)
         self.assertEqual(body.count('class="o_tour_photo o_tour_photo_main"'), 1)
 
+    def test_the_photos_come_before_the_line_of_facts(self):
+        """The mosaic is what the page is selling. A row of grey pills between
+        the title and the pictures pushed them down for no gain."""
+        body = self.url_open(self.tour.website_url).text
+
+        self.assertLess(
+            body.index("o_tour_photos"), body.index("o_tour_meta"),
+            "The duration/price line is back above the photos.",
+        )
+
     def test_the_main_picture_leads_the_mosaic(self):
         body = self.url_open(self.tour.website_url).text
 

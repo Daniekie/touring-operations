@@ -175,6 +175,77 @@ class TestCheckout(HttpCase, TourCase):
         self.assertEqual(booking.amount_total, 120.0)
         self.assertEqual(booking.answer_ids.value_char, "Hotel Bonaire")
 
+    # --- The live total -----------------------------------------------------
+
+    def _reprice(self, booking, **quantities):
+        response = self.url_open(
+            "/tour/booking/%s/extras" % booking.id,
+            json={"params": dict(
+                quantities, access_token=booking._portal_ensure_token()
+            )},
+        )
+        return response.json()["result"]
+
+    def test_choosing_an_extra_reprices_the_summary_there_and_then(self):
+        """The total used to move only when Save details was pressed, so adding
+        a wetsuit changed nothing on the page."""
+        booking = self._draft(pax=2)
+
+        result = self._reprice(booking, **{"extra_%s" % self.wetsuit.id: 1})
+        booking.invalidate_recordset()
+
+        # 2 x 50 for the dive, plus 2 x 10 of wetsuit.
+        self.assertEqual(booking.amount_total, 120.0)
+        self.assertIn("120", result["html"])
+
+    def test_the_extras_are_saved_not_merely_quoted(self):
+        """A guest who picks an extra and goes straight to the payment buttons
+        must be charged what the summary told them."""
+        booking = self._draft(pax=2)
+
+        self._reprice(booking, **{"extra_%s" % self.wetsuit.id: 2})
+        booking.invalidate_recordset()
+
+        self.assertEqual(booking.extra_line_ids.quantity, 2)
+
+    def test_removing_an_extra_takes_it_back_out_of_the_total(self):
+        booking = self._draft(pax=2)
+        self._reprice(booking, **{"extra_%s" % self.wetsuit.id: 1})
+
+        self._reprice(booking, **{"extra_%s" % self.wetsuit.id: 0})
+        booking.invalidate_recordset()
+
+        self.assertFalse(booking.extra_line_ids)
+        self.assertEqual(booking.amount_total, 100.0)
+
+    def test_repricing_refuses_a_wrong_token(self):
+        booking = self._draft(pax=2)
+
+        response = self.url_open(
+            "/tour/booking/%s/extras" % booking.id,
+            json={"params": {"access_token": "nonsense",
+                             "extra_%s" % self.wetsuit.id: 5}},
+        )
+        booking.invalidate_recordset()
+
+        self.assertIn("error", response.json())
+        self.assertFalse(booking.extra_line_ids, "It priced somebody else's booking.")
+
+    def test_the_boxes_remember_what_is_already_on_the_booking(self):
+        """The page is re-rendered after Save details and after a failed
+        payment. A box that reset to zero would disagree with the total next to
+        it."""
+        booking = self._draft(pax=2)
+        self._reprice(booking, **{"extra_%s" % self.wetsuit.id: 3})
+
+        body = self.url_open(booking._checkout_url()).text
+
+        box = re.search(
+            r'<input[^>]*name="extra_%s"[^>]*>' % self.wetsuit.id, body
+        )
+        self.assertIsNotNone(box, "The extras box is not on the page at all.")
+        self.assertIn('value="3"', box.group(0))
+
     def test_a_price_sent_by_the_browser_is_ignored(self):
         """The only number that counts is the one computed on the server."""
         booking = self._draft(pax=2)

@@ -22,6 +22,30 @@
                             </div>
                         </setting>
                     </block>
+                    <block title="Payments" name="tour_payment_container">
+                        <setting id="tour_settlement_currency" string="Settlement Currency"
+                                 help="The currency your payment provider charges in.">
+                            <field name="tour_settlement_currency_id"/>
+                            <div class="text-muted mt-2">
+                                Leave empty when your provider charges in your
+                                own currency: nothing is converted and there is
+                                one number all the way through. Set it and every
+                                booking fixes an exchange rate the moment it is
+                                created — the guest is charged that rate, and a
+                                refund repays what was taken, never a fresh
+                                conversion.
+                            </div>
+                            <div class="mt-3">
+                                <label for="tour_fx_margin" class="me-2"/>
+                                <field name="tour_fx_margin" class="oe_inline"/>
+                            </div>
+                            <div class="text-muted mt-2">
+                                Added to the day's rate, upward. Between fixing
+                                the rate and the money landing, the rate moves;
+                                this is who carries that.
+                            </div>
+                        </setting>
+                    </block>
                     <block title="Widgets" name="tour_embed_container">
                         <setting id="tour_embed_domains" string="Allowed Embed Domains"
                                  help="Which websites may embed your booking widgets.">

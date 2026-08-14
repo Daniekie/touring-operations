@@ -40,6 +40,9 @@ export class TourCalendar extends Interaction {
         this.hasSpecificTime = true;
         this.price = parseFloat(this.el.dataset.price) || 0;
         this.currencyId = parseInt(this.el.dataset.currency, 10);
+        // Only set when the operator's provider settles in another currency.
+        this.settlementCurrencyId = parseInt(this.el.dataset.settlementCurrency, 10);
+        this.settlementRate = parseFloat(this.el.dataset.settlementRate) || 0;
     }
 
     async willStart() {
@@ -240,7 +243,27 @@ export class TourCalendar extends Interaction {
         );
         this.el.querySelector(".o_tour_total_value").textContent =
             formatCurrency(this.price * pax, this.currencyId);
+        this.renderSettlement(this.price * pax);
         total.classList.remove("d-none");
+    }
+
+    /**
+     * "≈ €135 at today's rate", when the card will be charged in another
+     * currency than the one the tour is priced in.
+     *
+     * Hedged on purpose. The rate is fixed by the server when the booking is
+     * created, not now, so this is today's rate and may have moved by the time
+     * the guest reaches checkout — where the figure stops being approximate and
+     * says so.
+     */
+    renderSettlement(amount) {
+        const line = this.el.querySelector(".o_tour_total_settlement");
+        if (!line || !this.settlementRate || !this.settlementCurrencyId) {
+            return;
+        }
+        line.textContent = _t("≈ %(amount)s at today's rate", {
+            amount: formatCurrency(amount * this.settlementRate, this.settlementCurrencyId),
+        });
     }
 
     // --- Arriving with a choice already made --------------------------------

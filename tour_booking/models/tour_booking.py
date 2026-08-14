@@ -1,3 +1,5 @@
+import logging
+
 from dateutil.relativedelta import relativedelta
 from markupsafe import Markup
 
@@ -5,6 +7,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 from ..const import DEAD_TRANSACTION_STATES, SEAT_HOLDING_STATES
+
+_logger = logging.getLogger(__name__)
 
 # How long a checkout may sit unfinished before its seats go back on sale.
 DRAFT_LIFETIME_MINUTES = 30
@@ -52,7 +56,56 @@ class TourBooking(models.Model):
     amount_untaxed = fields.Monetary(compute="_compute_amounts", store=True)
     amount_tax = fields.Monetary(compute="_compute_amounts", store=True)
     amount_total = fields.Monetary(compute="_compute_amounts", store=True)
-    amount_paid = fields.Monetary(compute="_compute_amount_paid", store=True)
+
+    # --- Settlement --------------------------------------------------------
+    #
+    # The three amounts above are the booking, in the company's own currency:
+    # that is what the price list says, what tax was computed on, and what the
+    # books are kept in. Nothing below ever feeds back into them.
+    #
+    # Below is what the payment provider is asked for. We convert rather than
+    # letting the provider convert, so the transaction goes out in the currency
+    # it settles in and comes back in the same one — there is nothing left for
+    # the two sides to disagree about in the callback.
+    settlement_currency_id = fields.Many2one(
+        "res.currency",
+        compute="_compute_settlement_currency",
+        store=True,
+        string="Settlement Currency",
+    )
+    fx_rate = fields.Float(
+        string="Exchange Rate",
+        digits=(16, 6),
+        readonly=True,
+        copy=False,
+        help="Settlement currency per unit of the accounting currency, margin "
+             "included. Fixed when the booking is created and never recomputed.",
+    )
+    fx_rate_date = fields.Date(readonly=True, copy=False)
+    amount_settlement = fields.Monetary(
+        compute="_compute_amount_settlement",
+        store=True,
+        currency_field="settlement_currency_id",
+        string="Total to Pay",
+        help="The total at the rate fixed when this booking was created. This "
+             "is the figure the guest is charged, not an approximation of it.",
+    )
+    charged_amount = fields.Monetary(
+        currency_field="settlement_currency_id",
+        readonly=True,
+        copy=False,
+        string="Amount Charged",
+        help="What the provider reported taking. Normally identical to the "
+             "total above, since that is the amount it was asked for. A refund "
+             "repays this figure, never a fresh conversion.",
+    )
+    charged_fx_rate = fields.Float(
+        digits=(16, 6), readonly=True, copy=False, string="Rate Charged At"
+    )
+    amount_paid = fields.Monetary(
+        compute="_compute_amount_paid", store=True,
+        currency_field="settlement_currency_id",
+    )
 
     transaction_ids = fields.Many2many(
         "payment.transaction",
@@ -70,7 +123,10 @@ class TourBooking(models.Model):
     )
     cancelled_on = fields.Datetime(readonly=True, copy=False)
     refund_percent = fields.Float(compute="_compute_refund", store=True)
-    refund_amount = fields.Monetary(compute="_compute_refund", store=True)
+    refund_amount = fields.Monetary(
+        compute="_compute_refund", store=True,
+        currency_field="settlement_currency_id",
+    )
 
     # --- Computes ----------------------------------------------------------
 
@@ -111,9 +167,54 @@ class TourBooking(models.Model):
                 booking.amount_tax = 0.0
             booking.amount_total = booking.amount_untaxed + booking.amount_tax
 
+    @api.depends("company_id.tour_settlement_currency_id", "currency_id")
+    def _compute_settlement_currency(self):
+        """What the provider will be asked to charge in.
+
+        Falls back to the accounting currency rather than to nothing, so that an
+        operator whose provider charges in their own currency has no second
+        currency anywhere: the rate is 1, `amount_settlement` is `amount_total`,
+        and every branch below collapses to the case that existed before any of
+        this was here.
+
+        A booking that has already fixed a rate keeps the currency that rate is
+        in. Otherwise an operator switching providers next season would move
+        every historical booking's settlement currency and leave its rate
+        behind, and each of them would read as a euro figure at a pound rate.
+        """
+        for booking in self:
+            if booking.fx_rate and booking.settlement_currency_id:
+                continue
+            booking.settlement_currency_id = (
+                booking.company_id.tour_settlement_currency_id
+                or booking.currency_id
+            )
+
+    @api.depends("amount_total", "fx_rate", "settlement_currency_id")
+    def _compute_amount_settlement(self):
+        """The total, in the currency the guest is charged in.
+
+        Always computed from the *stored* rate. A version of this that fetched
+        today's rate would quietly re-quote every booking on every recompute,
+        which is the one thing fixing a rate is meant to prevent.
+        """
+        for booking in self:
+            if booking.settlement_currency_id == booking.currency_id:
+                booking.amount_settlement = booking.amount_total
+            elif not booking.fx_rate:
+                booking.amount_settlement = 0.0
+            else:
+                booking.amount_settlement = booking.settlement_currency_id.round(
+                    booking.amount_total * booking.fx_rate
+                )
+
     @api.depends("transaction_ids.state", "transaction_ids.amount")
     def _compute_amount_paid(self):
-        """What the guest actually handed over, not what was invoiced."""
+        """What the guest actually handed over, not what was invoiced.
+
+        In the settlement currency, because that is what the transaction was
+        raised in and what came back.
+        """
         for booking in self:
             booking.amount_paid = sum(
                 tx.amount for tx in booking.transaction_ids if tx.state == "done"
@@ -122,6 +223,8 @@ class TourBooking(models.Model):
     @api.depends(
         "cancelled_on",
         "amount_paid",
+        "charged_amount",
+        "amount_settlement",
         "cancellation_policy_id",
         "cancellation_policy_id.rule_ids.hours_before",
         "cancellation_policy_id.rule_ids.refund_percent",
@@ -150,10 +253,28 @@ class TourBooking(models.Model):
                 booking.departure_id.start_datetime, booking.cancelled_on
             )
             booking.refund_percent = percent
-            booking.refund_amount = booking.amount_paid * percent / 100.0
+            booking.refund_amount = booking._refundable_base() * percent / 100.0
+
+    def _refundable_base(self):
+        """The figure a refund is a percentage of. -> float, settlement currency.
+
+        What was charged, or failing that what this booking asked to be charged
+        — never a fresh conversion. Today's rate is not the rate the guest paid
+        at, and refunding at it hands the difference to whichever side the
+        market happened to favour.
+
+        Nothing paid means nothing to give back, whatever the policy says.
+        """
+        self.ensure_one()
+        if self.charged_amount:
+            return self.charged_amount
+        return self.amount_settlement if self.amount_paid else 0.0
 
     def _refund_preview(self, when=None):
         """What the guest would get back if they cancelled at `when`. -> float.
+
+        In the settlement currency, like the refund it previews: a guest who
+        paid €135 is asking what of that €135 comes back.
 
         A method and not a field, on purpose: the answer depends on the current
         time, so it has to be recomputed on every page load rather than stored.
@@ -164,7 +285,18 @@ class TourBooking(models.Model):
         percent = self.cancellation_policy_id._refund_percent_at(
             self.departure_id.start_datetime, when or fields.Datetime.now()
         )
-        return self.amount_paid * percent / 100.0
+        return self._refundable_base() * percent / 100.0
+
+    def _extra_quantity(self, extra):
+        """How many of `extra` this booking has taken. -> int.
+
+        For the checkout boxes, which are drawn once per `tour.extra` on the
+        tour rather than once per line on the booking — so the line, if there
+        is one, has to be looked up the other way round.
+        """
+        self.ensure_one()
+        line = self.extra_line_ids.filtered(lambda l: l.extra_id == extra)[:1]
+        return line.quantity if line else 0
 
     def _compute_access_url(self):
         super()._compute_access_url()
@@ -248,8 +380,107 @@ class TourBooking(models.Model):
                 departure._lock_and_check(vals.get("pax", 1))
 
         bookings = super().create(vals_list)
+        for booking in bookings:
+            booking._lock_fx_rate()
         bookings.departure_id._sync_full_state()
         return bookings
+
+    # --- Settlement --------------------------------------------------------
+
+    def _lock_fx_rate(self):
+        """Fix the rate this booking will be charged at, once.
+
+        Here and not at payment time because this is the moment the guest
+        commits: the draft is created the instant they press Book now, and from
+        then until the provider redirects them back, the number they were shown
+        must not move. Everything after this reads the stored rate.
+
+        Only ever set on a booking that has none. Re-pricing a booking — adding
+        a wetsuit at checkout — must not re-quote the rate underneath it.
+        """
+        self.ensure_one()
+        if self.fx_rate:
+            return
+        settlement = self.settlement_currency_id
+        if not settlement or settlement == self.currency_id:
+            return
+        today = fields.Date.context_today(self)
+        self.write({
+            "fx_rate": self.company_id._tour_fx_rate(self.currency_id, today),
+            "fx_rate_date": today,
+        })
+
+    def payment_amount(self):
+        """What to charge and in what. -> (float, res.currency).
+
+        The one place that answers this. A provider asked for the settlement
+        amount in the settlement currency does no conversion of its own, so the
+        figure that comes back in the callback is the figure that went out —
+        which is what makes `_record_charged_amount` a check rather than a
+        guess.
+
+        A booking with no rate falls back to its own currency rather than to
+        zero. That is a booking made before a settlement currency was ever
+        configured, and charging it nothing at all would be a far worse answer
+        than charging it the amount it has always said it costs.
+        """
+        self.ensure_one()
+        if not self.fx_rate or self.settlement_currency_id == self.currency_id:
+            return self.amount_total, self.currency_id
+        return self.amount_settlement, self.settlement_currency_id
+
+    def _record_charged_amount(self, transaction):
+        """Store what the provider reported taking.
+
+        Normally a formality: the transaction was raised in the settlement
+        currency for the exact amount we computed, so the figure that comes back
+        is the figure that went out. It is still written down rather than
+        assumed, because a refund repays what was actually taken, and "assumed"
+        is how a guest gets refunded a number nobody ever charged.
+
+        A discrepancy is therefore an anomaly and is reported as one — on the
+        booking so the operator sees it, in the log so it can be found later. It
+        does not block the confirmation: the guest has paid, and withholding
+        their seats over a rounding difference helps nobody.
+        """
+        self.ensure_one()
+        if not transaction.amount:
+            return
+        expected, currency = self.payment_amount()
+        if transaction.currency_id != currency:
+            _logger.warning(
+                "Booking %s was charged in %s but expected %s.",
+                self.name, transaction.currency_id.name, currency.name,
+            )
+            self.message_post(body=_(
+                "Payment %(reference)s came back in %(paid)s where this booking "
+                "is settled in %(expected)s. Nothing was recorded as charged: "
+                "check it by hand before refunding anything.",
+                reference=transaction.reference,
+                paid=transaction.currency_id.name,
+                expected=currency.name,
+            ))
+            return
+
+        if currency.compare_amounts(transaction.amount, expected) != 0:
+            _logger.warning(
+                "Booking %s asked for %s %s and was charged %s.",
+                self.name, expected, currency.name, transaction.amount,
+            )
+            self.message_post(body=_(
+                "Payment %(reference)s took %(charged)s %(currency)s where this "
+                "booking asked for %(expected)s. The charged figure is what a "
+                "refund repays.",
+                reference=transaction.reference,
+                charged=transaction.amount,
+                currency=currency.name,
+                expected=expected,
+            ))
+
+        values = {"charged_amount": transaction.amount}
+        if self.amount_total:
+            values["charged_fx_rate"] = transaction.amount / self.amount_total
+        self.write(values)
 
     def write(self, vals):
         # Growing a party needs the same guarantee as making one. `ignoring`

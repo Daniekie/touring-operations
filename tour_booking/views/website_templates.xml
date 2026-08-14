@@ -24,11 +24,16 @@
                      of thumbnails buried under the description — two bites at
                      the same job, neither of which could be enlarged. -->
                 <div class="container mt-4">
-                    <h1 t-field="tour.name" class="mb-2"/>
-                    <!-- Duration, where from, what it costs — the three
-                         things somebody scans for before reading a word. The
-                         price used to sit at the top of the booking card,
-                         which scrolled away under the header. -->
+                    <h1 t-field="tour.name" class="mb-3"/>
+                    <t t-call="tour_booking.experience_gallery"/>
+                    <!-- Duration, where from, what it costs — the three things
+                         somebody scans for before reading a word. Under the
+                         photos rather than above them: the mosaic is what the
+                         page is selling, and a row of grey pills between the
+                         title and the pictures pushed it down for no gain. The
+                         price is still out here rather than at the top of the
+                         booking card, which is sticky and slides under the
+                         site header. -->
                     <div class="o_tour_meta mb-3">
                         <span><i class="fa fa-clock-o me-1"/><span t-field="tour.duration_display"/></span>
                         <span t-if="tour.location_id">
@@ -41,7 +46,6 @@
                             <span class="text-muted"> per person</span>
                         </span>
                     </div>
-                    <t t-call="tour_booking.experience_gallery"/>
                 </div>
 
                 <div class="container my-5">

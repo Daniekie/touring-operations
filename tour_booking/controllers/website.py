@@ -57,12 +57,37 @@ def tour_values(tour_sudo, kwargs):
         # Open on the departure's own month, or the widget loads a month that
         # does not contain the thing it is meant to select.
         month = preselect.date.replace(day=1)
+    return dict(
+        {
+            "tour": tour_sudo,
+            "month": month,
+            "preselect_departure": preselect.id if preselect else None,
+            "preselect_pax": _preselected_pax(kwargs.get("pax")),
+            "autobook": bool(preselect) and kwargs.get("autobook") in ("1", "true"),
+        },
+        **_settlement_preview(tour_sudo),
+    )
+
+
+def _settlement_preview(tour_sudo):
+    """Today's rate, for the "≈ €135" line under the total while browsing.
+
+    Explicitly an approximation and labelled as one. Nothing is fixed until the
+    guest presses Book now, which creates the booking and locks the rate it will
+    actually be charged at; a figure shown here is at today's rate and may be a
+    little different by the time they get to checkout.
+
+    Both keys are always returned, empty or not: the widget markup reads them
+    unconditionally, and a template that names a value nobody set is a crash
+    rather than a missing line.
+    """
+    company = tour_sudo.company_id
+    settlement = company.tour_settlement_currency_id
+    if not settlement or settlement == tour_sudo.currency_id:
+        return {"settlement_currency": None, "settlement_rate": 0.0}
     return {
-        "tour": tour_sudo,
-        "month": month,
-        "preselect_departure": preselect.id if preselect else None,
-        "preselect_pax": _preselected_pax(kwargs.get("pax")),
-        "autobook": bool(preselect) and kwargs.get("autobook") in ("1", "true"),
+        "settlement_currency": settlement,
+        "settlement_rate": company._tour_fx_rate(tour_sudo.currency_id),
     }
 
 

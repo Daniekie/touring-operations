@@ -9,7 +9,13 @@
 
                     <div t-if="error" class="alert alert-danger" t-esc="error"/>
 
-                    <div class="row">
+                    <!-- The booking is what the extras interaction re-prices,
+                         and it is identified here rather than on the extras
+                         block itself: the summary it rewrites lives in the
+                         other column, so the interaction has to own both. -->
+                    <div class="row o_tour_checkout"
+                         t-att-data-booking-id="booking.id"
+                         t-att-data-access-token="booking.access_token">
                         <div class="col-lg-7">
                             <form t-attf-action="/tour/booking/#{booking.id}/details"
                                   method="post">
@@ -40,7 +46,7 @@
                                     </div>
                                 </div>
 
-                                <div t-if="extras" class="mb-4">
+                                <div t-if="extras" class="mb-4 o_tour_extras">
                                     <h3>Extras</h3>
                                     <div t-foreach="extras" t-as="extra"
                                          class="d-flex align-items-center justify-content-between border-bottom py-2">
@@ -53,10 +59,17 @@
                                                 <t t-else=""> per booking</t>
                                             </div>
                                         </div>
+                                        <!-- Pre-filled from what is already on the
+                                             booking, not from zero: the page is
+                                             reloaded after Save details and after a
+                                             failed payment, and a box that forgot
+                                             the wetsuit would disagree with the
+                                             total next to it. -->
                                         <input type="number" min="0"
                                                t-attf-name="extra_#{extra.id}"
-                                               t-att-value="0"
-                                               class="form-control" style="width: 6rem"/>
+                                               t-att-value="booking._extra_quantity(extra)"
+                                               class="form-control o_tour_extra_qty"
+                                               style="width: 6rem"/>
                                     </div>
                                 </div>
 
@@ -106,19 +119,29 @@
                                     Save details
                                 </button>
                             </form>
-
-                            <hr class="my-4"/>
-
-                            <h3>Payment</h3>
-                            <p class="text-muted">
-                                Your seats are held while you pay. If you do not
-                                finish, they go back on sale automatically.
-                            </p>
-                            <t t-call="payment.form"/>
                         </div>
 
+                        <!-- Summary and payment together, on the right. Paying
+                             is the one thing this page is for, and it used to
+                             sit at the bottom of the left column — below the
+                             questions, off the fold, and a column away from the
+                             total it charges. -->
                         <div class="col-lg-5">
-                            <t t-call="tour_booking.booking_summary"/>
+                            <div class="o_tour_summary">
+                                <t t-call="tour_booking.booking_summary"/>
+                            </div>
+
+                            <div class="card mt-3">
+                                <div class="card-body">
+                                    <h3>Payment</h3>
+                                    <p class="text-muted">
+                                        Your seats are held while you pay. If you
+                                        do not finish, they go back on sale
+                                        automatically.
+                                    </p>
+                                    <t t-call="payment.form"/>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -178,7 +201,26 @@
                                   t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
                         </td>
                     </tr>
+                    <!-- What the card is actually charged, when that is not the
+                         same currency. Not an approximation and not labelled as
+                         one: the rate was fixed when this booking was created,
+                         and this is the figure the provider is asked for. -->
+                    <tr t-if="booking.settlement_currency_id != booking.currency_id"
+                        class="fw-bold">
+                        <td>Charged as</td>
+                        <td class="text-end">
+                            <span t-field="booking.amount_settlement"
+                                  t-options="{'widget': 'monetary', 'display_currency': booking.settlement_currency_id}"/>
+                        </td>
+                    </tr>
                 </table>
+
+                <p t-if="booking.settlement_currency_id != booking.currency_id"
+                   class="small text-muted">
+                    Your card is charged in
+                    <t t-esc="booking.settlement_currency_id.name"/> at the rate
+                    fixed when you started this booking. It will not change.
+                </p>
 
                 <div t-if="booking.cancellation_policy_id" class="small text-muted">
                     <strong>Cancellation</strong>
@@ -207,10 +249,12 @@
                     </div>
                     <div t-if="booking.state == 'cancelled'" class="alert alert-secondary">
                         <h4>This booking is cancelled.</h4>
+                        <!-- In the currency the money left in, which is the
+                             currency it comes back in. -->
                         <p t-if="booking.refund_amount">
                             Refund due:
                             <span t-field="booking.refund_amount"
-                                  t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                                  t-options="{'widget': 'monetary', 'display_currency': booking.settlement_currency_id}"/>
                             (<t t-esc="int(booking.refund_percent)"/>%).
                         </p>
                     </div>
@@ -226,7 +270,7 @@
                                     If you cancel now you would get
                                     <strong>
                                         <span t-esc="refund_preview"
-                                              t-options="{'widget': 'monetary', 'display_currency': booking.currency_id}"/>
+                                              t-options="{'widget': 'monetary', 'display_currency': booking.settlement_currency_id}"/>
                                     </strong>
                                     back.
                                 </p>
