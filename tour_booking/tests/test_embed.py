@@ -105,6 +105,40 @@ class TestEmbed(HttpCase, TourCase):
             "frame-ancestors https://example.com https://www.example.com",
         )
 
+    def test_a_junk_entry_in_the_allow_list_does_not_take_the_page_down(self):
+        """The setting is a free-text field an operator types into.
+
+        Whatever they type went into a response header unchecked. A newline in
+        there is a header Werkzeug refuses to send — a 500 on the widget, for a
+        typo in a settings field, with nothing on the page saying which setting
+        caused it.
+        """
+        self.env.company.tour_embed_domains = "https://good.example.com, not a domain\nx"
+        self.env.flush_all()
+
+        response = self.url_open("/tour/embed/experiences")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get("Content-Security-Policy"),
+            "frame-ancestors https://good.example.com",
+            "The usable entry should survive and the junk should be dropped.",
+        )
+
+    def test_an_allow_list_of_nothing_but_junk_frames_nobody(self):
+        """Not "anybody": an operator who filled this in wanted a restriction,
+        and falling back to the open default because their typing was unusable
+        is the one interpretation they did not ask for."""
+        self.env.company.tour_embed_domains = "nonsense, also nonsense"
+        self.env.flush_all()
+
+        response = self.url_open("/tour/embed/experiences")
+
+        self.assertEqual(
+            response.headers.get("Content-Security-Policy"),
+            "frame-ancestors 'none'",
+        )
+
     # --- The boundary the whole design exists for ---------------------------
 
     def test_a_choice_made_in_a_frame_is_restored_on_the_first_party_page(self):

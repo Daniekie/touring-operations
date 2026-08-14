@@ -17,6 +17,8 @@ session, the token and the payment redirect all behave normally. One extra tab,
 in exchange for a checkout that works in every browser.
 """
 
+from urllib.parse import urlparse
+
 from odoo import http
 from odoo.http import request
 
@@ -80,15 +82,41 @@ class TourBookingEmbed(http.Controller):
         their own site fills in the allow-list and gets a `frame-ancestors`
         header; an empty list means anybody, which is the default because the
         content here is a public catalogue.
+
+        A list that was filled in and turns out to be unusable falls back to
+        `'none'` rather than to the open default. Somebody who typed something
+        here wanted a restriction, and quietly serving the widget to the whole
+        internet because their typing was wrong is the one reading they did not
+        ask for.
         """
         domains = request.env.company.sudo().tour_embed_domains
-        if domains:
-            allowed = " ".join(d.strip() for d in domains.split(",") if d.strip())
-            if allowed:
-                response.headers["Content-Security-Policy"] = (
-                    "frame-ancestors %s" % allowed
-                )
+        if not domains:
+            return response
+        allowed = [
+            origin for origin in (d.strip() for d in domains.split(","))
+            if self._is_frame_origin(origin)
+        ]
+        response.headers["Content-Security-Policy"] = (
+            "frame-ancestors %s" % (" ".join(allowed) if allowed else "'none'")
+        )
         return response
+
+    def _is_frame_origin(self, origin):
+        """Is this something a browser would accept in `frame-ancestors`? -> bool.
+
+        A settings field is free text, and whatever it held used to be pasted
+        into a response header as-is. A newline in there is a header Werkzeug
+        refuses to send, which turns a typo in a settings field into a 500 on
+        the widget with nothing anywhere naming the setting that did it.
+        """
+        if not origin or len(origin) > 255:
+            return False
+        # A source expression is a single token: no whitespace of any kind,
+        # which is also what keeps CR and LF out of the header.
+        if any(character.isspace() or character in ";," for character in origin):
+            return False
+        parsed = urlparse(origin)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
     @http.route(
         ["/tour/embed/experiences"], type="http", auth="public", website=True,
