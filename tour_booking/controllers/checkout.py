@@ -243,15 +243,43 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
         if not name and not email:
             return
         partner = booking_sudo.partner_id
-        is_public = partner == request.website.user_id.sudo().partner_id
         values = {"name": name or partner.name, "email": email or partner.email,
                   "phone": (post.get("phone") or "").strip() or partner.phone}
-        if is_public:
-            # Never write onto the shared public partner: it is one record for
-            # every anonymous visitor on the site.
-            booking_sudo.partner_id = request.env["res.partner"].sudo().create(values)
-        else:
+        if self._may_rewrite_partner(booking_sudo, partner):
             partner.sudo().write(values)
+        else:
+            booking_sudo.write({
+                "partner_id": request.env["res.partner"].sudo().create(values).id,
+                # This contact exists for this booking, so the guest may come
+                # back and correct it.
+                "partner_from_checkout": True,
+            })
+
+    def _may_rewrite_partner(self, booking_sudo, partner):
+        """Is this contact this booking's to edit? -> bool.
+
+        An access token is a key to one booking, not to a contact record. A desk
+        user books a seat for a regular customer, the link goes out by email,
+        and whoever ends up holding it could rewrite that customer's name, phone
+        and — the one that matters — their email address.
+
+        So the details step only writes a contact that exists for this booking
+        and nothing else, or the contact of the person actually logged in as it.
+        Anything else gets a contact of its own, which is what an anonymous
+        checkout has always done anyway.
+        """
+        if not partner or partner == request.website.user_id.sudo().partner_id:
+            # The shared public partner: one record for every anonymous visitor
+            # on the site, and never writable.
+            return False
+        if not request.env.user._is_public() and partner == request.env.user.partner_id:
+            # Their own record, and they are signed in as it.
+            return True
+        if partner.sudo().user_ids:
+            # Somebody's login. Their email address is their way back into the
+            # account, so it is not something a booking link may change.
+            return False
+        return booking_sudo.partner_from_checkout
 
     def _save_extras(self, booking_sudo, post):
         booking_sudo.extra_line_ids.unlink()

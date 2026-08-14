@@ -168,6 +168,67 @@ class TestCheckout(HttpCase, TourCase):
 
         self.assertEqual(response.status_code, 303, "It should redirect away.")
 
+    # --- Whose contact the details step may rewrite -------------------------
+
+    def _save_details(self, booking, **fields_):
+        return self._post(
+            "/tour/booking/%s/details" % booking.id,
+            booking._checkout_url(),
+            access_token=booking.access_token,
+            **fields_,
+        )
+
+    def test_the_details_step_does_not_rewrite_a_contact_it_did_not_make(self):
+        """The access token is a key to one booking, not to a contact record.
+
+        A desk user books a seat for a regular customer; the token goes out by
+        email, or into a browser history, or to whoever the guest forwards it
+        to. Whoever holds it could overwrite that customer's name, phone and —
+        the one that matters — email address.
+        """
+        customer = self.env["res.partner"].create({
+            "name": "Regular Customer", "email": "regular@example.com",
+        })
+        booking = self.env["tour.booking"].create({
+            "departure_id": self.departure.id,
+            "partner_id": customer.id,
+            "pax": 1,
+        })
+
+        self._save_details(booking, name="Someone Else", email="attacker@example.com")
+
+        self.assertEqual(customer.name, "Regular Customer")
+        self.assertEqual(
+            customer.email, "regular@example.com",
+            "A booking token rewrote a customer's email address.",
+        )
+        self.assertNotEqual(
+            booking.partner_id, customer,
+            "The booking should have been moved onto a contact of its own.",
+        )
+        self.assertEqual(booking.partner_id.email, "attacker@example.com")
+
+    def test_a_guest_can_still_correct_their_own_details(self):
+        """The contact the checkout made for them is theirs to edit, and
+        editing it must not spawn a new one on every save.
+
+        Booked through the site rather than by hand, because the thing under
+        test is precisely how the contact came to exist: an anonymous visitor
+        starts on the shared public partner and is given one of their own at
+        this step.
+        """
+        booking = self.env["tour.booking"].browse(int(
+            self._book_now().url.split("/tour/booking/")[1].split("?")[0]
+        ))
+        self.assertTrue(booking.partner_id)
+
+        self._save_details(booking, name="Guest", email="guest@example.com")
+        theirs = booking.partner_id
+        self._save_details(booking, name="Guest Corrected", email="guest@example.com")
+
+        self.assertEqual(booking.partner_id, theirs, "A second contact was created.")
+        self.assertEqual(theirs.name, "Guest Corrected")
+
     # --- Confirmation on the callback --------------------------------------
 
     def _paid(self, booking):

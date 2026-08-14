@@ -46,6 +46,15 @@ class TourBooking(models.Model):
     tour_id = fields.Many2one(related="departure_id.tour_id", store=True, index=True)
     start_datetime = fields.Datetime(related="departure_id.start_datetime", store=True)
     partner_id = fields.Many2one("res.partner", string="Guest", required=True, index=True)
+    # Set when the checkout made the contact for this booking, and the licence
+    # for the details step to write to it later. Without it, the only way to
+    # tell a contact the guest created from one a desk user picked is to guess,
+    # and guessing wrong hands whoever holds the booking link the ability to
+    # rewrite somebody's email address. Defaults false, so every booking that
+    # existed before this did is on the safe side of the question.
+    partner_from_checkout = fields.Boolean(
+        string="Contact Made at Checkout", readonly=True, copy=False,
+    )
     partner_email = fields.Char(related="partner_id.email", string="Email", readonly=True)
     partner_phone = fields.Char(related="partner_id.phone", string="Phone", readonly=True)
     company_id = fields.Many2one(related="departure_id.company_id", store=True)
