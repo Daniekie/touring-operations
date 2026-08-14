@@ -127,7 +127,7 @@ class TourBookingEmbed(http.Controller):
         """Widget 2: one experience — picture, description, calendar."""
         tour = self._tour_or_404(tour_id)
         if not tour:
-            return request.not_found()
+            raise request.not_found()
         return self._embed_response("tour_booking.embed_experience", dict(
             tour_values(tour, kwargs),
             # Set by the catalogue's own cards, so the back link appears only
@@ -147,7 +147,7 @@ class TourBookingEmbed(http.Controller):
         """
         tour = self._tour_or_404(tour_id)
         if not tour:
-            return request.not_found()
+            raise request.not_found()
         return self._embed_response(
             "tour_booking.embed_book", tour_values(tour, kwargs)
         )

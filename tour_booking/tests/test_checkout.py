@@ -5,6 +5,7 @@ from datetime import timedelta
 from odoo import fields
 from odoo.tests import tagged
 from odoo.tests.common import HttpCase
+from odoo.tools import mute_logger
 
 from .common import TourCase
 
@@ -103,6 +104,10 @@ class TestCheckout(HttpCase, TourCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Complete your booking", response.text)
 
+    # The refusal is an `AccessError`, which Odoo logs as a warning on its way
+    # out of the controller. That is right on a live instance and noise here:
+    # this test exists to make it happen.
+    @mute_logger("odoo.http")
     def test_the_checkout_page_refuses_a_wrong_token(self):
         booking = self._draft(pax=2)
 
@@ -238,6 +243,7 @@ class TestCheckout(HttpCase, TourCase):
         self.assertFalse(booking.extra_line_ids)
         self.assertEqual(booking.amount_total, 100.0)
 
+    @mute_logger("odoo.http")
     def test_repricing_refuses_a_wrong_token(self):
         booking = self._draft(pax=2)
 

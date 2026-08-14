@@ -136,7 +136,9 @@ class TourBookingWebsite(http.Controller):
     )
     def tour(self, tour, **kwargs):
         if not tour.sudo().is_published:
-            return request.not_found()
+            # Raised, not returned: `not_found()` builds the exception and
+            # handing it back logs a warning on every hit.
+            raise request.not_found()
         tour_sudo = tour.sudo()
         return request.render(
             "tour_booking.tour_detail",

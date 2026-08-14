@@ -18,6 +18,11 @@ from odoo.tests.common import HttpCase
 
 from .common import TourCase
 
+# Where `_record_charged_amount` reports a payment that does not match what was
+# asked for. The two tests below provoke exactly that, so they capture the
+# warning rather than letting a green run print one.
+ANOMALY_LOGGER = "odoo.addons.tour_booking.models.tour_booking"
+
 
 @tagged("post_install", "-at_install")
 class TestSettlementCurrency(TourCase):
@@ -170,7 +175,12 @@ class TestSettlementCurrency(TourCase):
         transaction = self._transaction(booking, "done")
         transaction.currency_id = booking.currency_id
 
-        transaction._post_process()
+        # The log line is half the point — an operator finds this months later
+        # by grepping, not by opening a booking they have no reason to suspect.
+        # Asserted rather than muted, so a passing run stays quiet either way.
+        with self.assertLogs(ANOMALY_LOGGER, "WARNING") as logged:
+            transaction._post_process()
+        self.assertIn("was charged in", logged.output[0])
 
         self.assertEqual(booking.state, "confirmed")
         self.assertFalse(booking.charged_amount)
@@ -186,7 +196,9 @@ class TestSettlementCurrency(TourCase):
         transaction = self._transaction(booking, "done")
         transaction.amount = 88.0
 
-        transaction._post_process()
+        with self.assertLogs(ANOMALY_LOGGER, "WARNING") as logged:
+            transaction._post_process()
+        self.assertIn("asked for", logged.output[0])
 
         self.assertEqual(booking.charged_amount, 88.0)
         self.assertTrue(

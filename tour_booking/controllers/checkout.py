@@ -34,7 +34,11 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
             int(departure_id or 0)
         ).exists()
         if not departure or not departure.tour_id.is_published:
-            return request.not_found()
+            # Raised rather than returned. `not_found()` builds an exception,
+            # and a controller that hands one back instead of throwing it gets
+            # a "returns an HTTPException instead of raising it" warning on
+            # every hit — the page is still a 404, but the log fills up.
+            raise request.not_found()
 
         try:
             pax = max(1, int(pax))
