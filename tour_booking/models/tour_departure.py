@@ -16,6 +16,15 @@ HORIZON_MONTHS = 12
 # person. Only writes *without* it count as manual adjustments; see `write`.
 SYSTEM_WRITE = "tour_system_write"
 
+# The widest span the booking calendar will draw in one call.
+#
+# `get_calendar_grid` is reachable by RPC and used to read whatever range it was
+# handed: eleven years took 411ms and thirty-one queries against eighteen
+# thousand departures, on one worker, for one mistyped request. The component
+# asks for a week, or a single day; six weeks leaves room for a month view to be
+# added without anybody having to remember this number exists.
+MAX_GRID_DAYS = 42
+
 
 class TourDeparture(models.Model):
     """A dated instance of a tour, and the thing that actually holds seats.
@@ -156,6 +165,16 @@ class TourDeparture(models.Model):
         """
         date_from = fields.Date.to_date(date_from)
         date_to = fields.Date.to_date(date_to)
+        span = (date_to - date_from).days + 1
+        if span < 1:
+            raise UserError(_("The calendar cannot end before it starts."))
+        if span > MAX_GRID_DAYS:
+            raise UserError(_(
+                "The calendar shows at most %(days)s days at a time, and "
+                "%(asked)s were asked for.",
+                days=MAX_GRID_DAYS,
+                asked=span,
+            ))
 
         departures = self.search([
             ("date", ">=", date_from),

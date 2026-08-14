@@ -1,6 +1,9 @@
 from datetime import date, datetime, timedelta
 
 from odoo import fields
+from odoo.exceptions import UserError
+
+from odoo.addons.tour_booking.models.tour_departure import MAX_GRID_DAYS
 
 from .common import TourCase
 
@@ -52,6 +55,32 @@ class TestCalendarGrid(TourCase):
         })
 
     # --- Shape --------------------------------------------------------------
+
+    def test_a_range_wider_than_the_screen_can_use_is_refused(self):
+        """The method is callable from the browser, and it read whatever range
+        it was handed.
+
+        Eleven years of departures took 411ms and thirty-one queries on a
+        database of eighteen thousand — one worker, one request, and nothing
+        between a mistyped URL and the whole table. The component never asks for
+        more than a few weeks.
+        """
+        with self.assertRaises(UserError):
+            self._grid(date_from=date(2020, 1, 1), date_to=date(2030, 12, 31))
+
+    def test_the_widest_range_the_cap_allows_is_accepted(self):
+        """The screen asks for a week; the cap is six, so there is room for a
+        month view later. Either way the boundary itself has to work."""
+        grid = self._grid(
+            date_from=self.week_from,
+            date_to=self.week_from + timedelta(days=MAX_GRID_DAYS - 1),
+        )
+
+        self.assertEqual(len(grid["days"]), MAX_GRID_DAYS)
+
+    def test_a_backwards_range_is_refused_rather_than_drawn_empty(self):
+        with self.assertRaises(UserError):
+            self._grid(date_from=self.week_to, date_to=self.week_from)
 
     def test_the_grid_covers_every_day_of_the_week(self):
         grid = self._grid()
