@@ -9,52 +9,57 @@
                 <div class="alert alert-info" role="alert">
                     For your <strong>own Odoo website</strong> you do not need
                     any of this — edit the page and drag one of the
-                    <strong>Experiences</strong>, <strong>Booking Box</strong> or
-                    <strong>Book Now</strong> blocks out of the
-                    <strong>Catalog</strong> category.
+                    <strong>Tour Widgets</strong> blocks onto it.
                     <br/>
                     The code below is for a site you keep somewhere else.
                 </div>
 
-                <group>
-                    <group>
-                        <field name="widget_type" widget="radio"/>
-                    </group>
-                    <group>
-                        <field name="tour_id"
-                               options="{'no_create': True}"
-                               invisible="widget_type not in ('experience', 'book')"
-                               required="widget_type in ('experience', 'book')"/>
-                        <field name="columns"
-                               invisible="widget_type not in ('experiences', 'button')"/>
-                        <field name="label" invisible="widget_type != 'button'"/>
-                    </group>
-                </group>
-
-                <group string="Paste this into your site">
-                    <!-- The same field twice: a readonly box so it can be read,
-                         and the clipboard button, which is the only variant
-                         that takes a Text field. The code is two lines, so a
-                         single-line Char widget would hide half of it. -->
-                    <field name="code" nolabel="1" readonly="1"
-                           class="o_tour_embed_code"/>
-                    <field name="code" widget="CopyClipboardButton"
-                           string="Copy" nolabel="1"/>
-                    <field name="preview_url" invisible="1"/>
-                </group>
-
-                <div class="text-muted">
-                    Guests browse inside the widget. Pressing <strong>Book
-                    now</strong> opens the booking on your own site in a new
-                    tab, which is what lets the payment go through — a
-                    checkout running inside somebody else's page loses its
-                    session in Safari and Firefox.
+                <h4 class="o_tour_embed_step">Step 1 — Choose a widget</h4>
+                <div class="row">
+                    <div class="col-lg-6">
+                        <group>
+                            <field name="widget_type" widget="radio" nolabel="1"/>
+                        </group>
+                        <group>
+                            <field name="tour_id"
+                                   options="{'no_create': True}"
+                                   invisible="widget_type not in ('experience', 'book')"
+                                   required="widget_type in ('experience', 'book')"/>
+                            <field name="columns"
+                                   invisible="widget_type not in ('experiences', 'button')"/>
+                            <field name="label" invisible="widget_type != 'button'"/>
+                        </group>
+                    </div>
+                    <!-- What the choice looks like. A radio list of four
+                         phrases is four guesses; a picture is not. -->
+                    <div class="col-lg-6">
+                        <field name="preview_image" widget="image"
+                               nolabel="1" readonly="1"
+                               class="o_tour_embed_picture"
+                               options="{'size': [420, 260]}"/>
+                    </div>
                 </div>
 
+                <h4 class="o_tour_embed_step">Step 2 — Paste this code on your website</h4>
+                <!-- The same field twice: a readonly box so it can be read,
+                     and the clipboard button, which is the only variant that
+                     takes a Text field. The code is two lines, so a
+                     single-line Char widget would hide half of it. -->
+                <field name="code" nolabel="1" readonly="1"
+                       class="o_tour_embed_code"/>
+                <field name="code" widget="CopyClipboardButton"
+                       string="Copy" nolabel="1"/>
+
+                <group invisible="not preview_url">
+                    <!-- A plain link, not a button. Opening a tab from the
+                         response to a button's RPC is a pop-up as far as the
+                         browser is concerned, and it gets blocked; a link the
+                         operator clicks is a gesture and does not. -->
+                    <field name="preview_url" widget="url" string="Preview"
+                           readonly="1"/>
+                </group>
+
                 <footer>
-                    <button name="action_open_preview" type="object"
-                            string="Preview" class="btn-primary"
-                            invisible="not preview_url"/>
                     <button string="Close" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>

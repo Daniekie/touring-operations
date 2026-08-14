@@ -183,3 +183,31 @@ class TestBackendUI(HttpCase):
             login="admin",
             timeout=90,
         )
+
+    def test_the_put_on_a_website_wizard_opens_with_a_picture(self):
+        """It is a dialog nothing else opens, and it draws a Binary field read
+        off disk — two things that fail quietly and only for the operator."""
+        self.browser_js(
+            "/odoo/action-tour_booking.tour_embed_action",
+            """
+            const dialog = document.querySelector(".modal .o_form_view");
+            if (!dialog) {
+                throw new Error("The wizard did not open.");
+            }
+            if (!dialog.querySelector('[name="preview_image"] img')) {
+                throw new Error("No picture of the chosen widget.");
+            }
+            if (!dialog.querySelector('[name="code"]')) {
+                throw new Error("No code to paste.");
+            }
+            const steps = [...dialog.querySelectorAll(".o_tour_embed_step")]
+                .map((el) => el.textContent.trim());
+            if (steps.length !== 2) {
+                throw new Error(`Expected two steps, found ${steps.length}.`);
+            }
+            console.log('test successful');
+            """,
+            ready="!!document.querySelector('.modal [name=\"preview_image\"] img')",
+            login="admin",
+            timeout=90,
+        )

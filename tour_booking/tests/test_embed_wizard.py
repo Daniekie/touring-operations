@@ -73,7 +73,7 @@ class TestEmbedWizard(TourCase):
             self.assertIn(expected, wizard.preview_url, kind)
 
     def test_an_experience_widget_with_nothing_chosen_has_no_preview(self):
-        """The Preview button hides rather than opening a 404."""
+        """The Preview link hides rather than offering a 404."""
         wizard = self._wizard(widget_type="experience")
 
         self.assertFalse(wizard.preview_url)
@@ -103,3 +103,15 @@ class TestEmbedWizard(TourCase):
         self.assertEqual(action["res_model"], "tour.embed")
         self.assertEqual(action["context"]["default_tour_id"], self.tour.id)
         self.assertEqual(action["context"]["default_widget_type"], "experience")
+
+    def test_each_widget_offers_a_picture_of_what_it_is(self):
+        """Four phrases in a radio list are four guesses. The pictures ship as
+        placeholders and are read off disk, so replacing the file is the whole
+        job of replacing one."""
+        for kind in ("experiences", "experience", "book", "button"):
+            wizard = self._wizard(widget_type=kind, tour_id=self.tour.id)
+            self.assertTrue(wizard.preview_image, kind)
+
+    def test_a_missing_picture_does_not_break_the_wizard(self):
+        """They are files on disk that somebody is invited to replace."""
+        self.assertFalse(self.env["tour.embed"]._widget_picture("not_a_widget"))

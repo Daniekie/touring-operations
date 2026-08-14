@@ -1,5 +1,7 @@
-from odoo import _, api, fields, models
+import base64
 
+from odoo import _, api, fields, models
+from odoo.tools import file_open
 
 # Which widget needs an experience named, and which stands on its own.
 NEEDS_TOUR = ("experience", "book")
@@ -18,10 +20,12 @@ class TourEmbed(models.TransientModel):
 
     widget_type = fields.Selection(
         [
-            ("experiences", "All experiences"),
-            ("experience", "One experience"),
-            ("book", "Booking box only"),
-            ("button", "Book now button"),
+            # Named after what an operator would say they want, not after the
+            # route behind it.
+            ("experiences", "A page with all your experiences"),
+            ("experience", "A page for one experience"),
+            ("book", "Just the booking calendar for one experience"),
+            ("button", "A Book Now button"),
         ],
         string="Widget",
         required=True,
@@ -46,6 +50,28 @@ class TourEmbed(models.TransientModel):
     )
     code = fields.Text(compute="_compute_code", string="Paste this into your site")
     preview_url = fields.Char(compute="_compute_code")
+    preview_image = fields.Binary(compute="_compute_preview_image")
+
+    @api.depends("widget_type")
+    def _compute_preview_image(self):
+        """A picture of what the operator is choosing.
+
+        Read off disk rather than stored, so replacing the file replaces the
+        picture — these ship as placeholders and an operator will want their
+        own screenshots in them.
+        """
+        for wizard in self:
+            wizard.preview_image = self._widget_picture(wizard.widget_type)
+
+    @api.model
+    def _widget_picture(self, widget_type):
+        path = "tour_booking/static/src/img/widget_previews/%s.png" % widget_type
+        try:
+            with file_open(path, "rb", filter_ext=(".png",)) as handle:
+                return base64.b64encode(handle.read())
+        except (FileNotFoundError, ValueError):
+            # A missing picture is a missing picture, not a broken wizard.
+            return False
 
     @api.depends("widget_type", "tour_id", "columns", "label")
     def _compute_code(self):
@@ -86,14 +112,6 @@ class TourEmbed(models.TransientModel):
             return "%s/tour/embed/%s/%s" % (base, self.widget_type, self.tour_id.id)
         columns = "?columns=%s" % self.columns if self.columns else ""
         return "%s/tour/embed/experiences%s" % (base, columns)
-
-    def action_open_preview(self):
-        self.ensure_one()
-        return {
-            "type": "ir.actions.act_url",
-            "url": self.preview_url,
-            "target": "new",
-        }
 
     @api.model
     def action_open(self, tour_id=None):

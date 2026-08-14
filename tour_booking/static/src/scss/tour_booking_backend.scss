@@ -33,3 +33,24 @@
     font-size: .8125rem;
     white-space: pre;
 }
+
+// The Put-on-a-website wizard reads as two numbered steps, so the headings
+// have to look like steps rather than like more field labels.
+.o_tour_embed_step {
+    margin-top: 1.5rem;
+    margin-bottom: .75rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--o-gray-200, #dee2e6);
+    font-weight: 600;
+
+    &:first-of-type {
+        margin-top: .5rem;
+    }
+}
+
+.o_tour_embed_picture img {
+    width: 100%;
+    max-width: 420px;
+    border: 1px solid var(--o-gray-300, #dee2e6);
+    border-radius: .375rem;
+}
