@@ -17,6 +17,7 @@ import re
 
 from odoo.tests import tagged
 from odoo.tests.common import HttpCase, freeze_time
+from odoo.tools import file_path
 
 from .common import TourCase
 
@@ -438,6 +439,39 @@ class TestSnippets(HttpCase, TourCase):
             timeout=120,
         )
 
+    def test_the_option_templates_call_no_global_owl_does_not_pass_through(self):
+        """The gap that took the editor down.
+
+        The plugin registering is not the template rendering. Owl compiles a
+        bare identifier into a lookup on the render context, so `String(x)`
+        becomes `ctx.String(x)` — which compiles, registers, passes every check
+        above, and then throws `ctx.String is not a function` on the first
+        render. Two blocks were unusable in the website editor.
+
+        The list is Owl's own `RESERVED_WORDS` read the other way round: these
+        are the globals it does *not* provide, and using one is a crash rather
+        than a style question. Checked here rather than in a browser because the
+        failure is a property of the file, and a static check cannot be flaky.
+
+        Source of truth: `web/static/lib/owl/owl.js`, `RESERVED_WORDS`.
+        """
+        path = file_path("tour_booking/static/src/website_builder/tour_snippet_option.xml")
+        with open(path, encoding="utf-8") as handle:
+            # Comments stripped first: the comment next to the fix names the
+            # thing it is warning about, and a check that could not tell the
+            # two apart would be a check nobody can explain themselves to.
+            source = re.sub(r"<!--.*?-->", "", handle.read(), flags=re.DOTALL)
+
+        for name in ("String", "Number", "Boolean", "parseInt", "parseFloat",
+                     "JSON", "Promise", "Symbol"):
+            # Bare uses only. `tour.id.toString()` is a method on a value the
+            # template already has and is exactly what the fix looks like, so a
+            # plain substring search would fail on its own cure.
+            self.assertIsNone(
+                re.search(r"(?<![\w.])%s\s*[(.]" % name, source),
+                "%s is not in Owl's render context: this throws on render." % name,
+            )
+
     def test_the_booking_blocks_are_offered_in_the_block_picker(self):
         """What the editor's Blocks panel is actually handed.
 
@@ -449,7 +483,8 @@ class TestSnippets(HttpCase, TourCase):
         """
         panel = self._snippet_panel()
 
-        for name in ["Experiences", "Experience", "Booking Box", "Book Now Button"]:
+        for name in ["All Experiences", "One Experience, In Full",
+                     "Calendar Only", "Book Now Button"]:
             self.assertIn(
                 '<div name="%s" data-oe-type="snippet"' % name, panel,
                 "%s is not offered as a block." % name,
@@ -485,7 +520,8 @@ class TestSnippets(HttpCase, TourCase):
         operator is choosing between white rectangles."""
         panel = self._snippet_panel()
 
-        for key in ("s_tour_experiences", "s_tour_experience", "s_tour_book"):
+        for key in ("s_tour_experiences", "s_tour_experience", "s_tour_book",
+                    "s_tour_book_button"):
             entry = re.search(
                 r'<div[^>]*data-oe-snippet-key="%s"[^>]*>' % key, panel
             )

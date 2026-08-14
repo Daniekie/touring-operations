@@ -26,8 +26,13 @@
 <t t-name="tour_booking.TourExperienceOption">
     <BuilderRow label.translate="Experience">
         <BuilderSelect action="'reloadTourSnippet'" dataAttributeAction="'tourId'">
+            <!-- `tour.id.toString()` and not `String(tour.id)`: Owl compiles a
+                 bare `String` into `ctx.String`, which is not a function and
+                 takes the whole option panel down with it. The value has to be
+                 a string either way — it is written into a data attribute and
+                 compared against one. -->
             <BuilderSelectItem t-foreach="tours.records" t-as="tour" t-key="tour.id"
-                               dataAttributeActionValue="String(tour.id)">
+                               dataAttributeActionValue="tour.id.toString()">
                 <t t-out="tour.name"/>
             </BuilderSelectItem>
         </BuilderSelect>

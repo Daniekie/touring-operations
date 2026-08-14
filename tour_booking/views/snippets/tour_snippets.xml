@@ -15,7 +15,7 @@
         fetched instead, on every page load, by `tour_booking.snippet`.
     -->
 
-    <template id="s_tour_experiences" name="Experiences">
+    <template id="s_tour_experiences" name="All Experiences">
         <section class="s_tour_experiences s_tour_dynamic pt32 pb32"
                  data-tour-widget="experiences" data-tour-columns="2">
             <div class="container">
@@ -24,7 +24,7 @@
         </section>
     </template>
 
-    <template id="s_tour_experience" name="Experience">
+    <template id="s_tour_experience" name="One Experience, In Full">
         <section class="s_tour_experience s_tour_dynamic pt32 pb32"
                  data-tour-widget="experience">
             <div class="container">
@@ -35,7 +35,7 @@
 
     <!-- For a page that already sells the experience in its own words and just
          needs somewhere to buy it. -->
-    <template id="s_tour_book" name="Booking Box">
+    <template id="s_tour_book" name="Calendar Only">
         <section class="s_tour_book s_tour_dynamic pt32 pb32"
                  data-tour-widget="book">
             <div class="container">
@@ -92,23 +92,30 @@
         <!-- `t-image-preview` because the gallery previews a block by rendering
              it, and these render as an empty shell until their content is
              fetched — which is a white rectangle in the picker and tells an
-             operator nothing about what they are about to drop. -->
+             operator nothing about what they are about to drop.
+
+             Every picture carries its own title, and the names below say what
+             the block *does* rather than what it contains: the gallery shows
+             the pictures at full width with the names too small to read, so
+             "Experience" and "Experiences" were one letter apart and four
+             wireframes deep. -->
         <xpath expr="//snippets[@id='snippet_structure']/*[1]" position="before">
-            <t t-snippet="tour_booking.s_tour_experiences" string="Experiences"
+            <t t-snippet="tour_booking.s_tour_experiences" string="All Experiences"
                group="tour_widgets"
                t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experiences.svg"
                t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_experiences.svg"/>
-            <t t-snippet="tour_booking.s_tour_experience" string="Experience"
+            <t t-snippet="tour_booking.s_tour_experience" string="One Experience, In Full"
                group="tour_widgets"
                t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experience.svg"
                t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_experience.svg"/>
-            <t t-snippet="tour_booking.s_tour_book" string="Booking Box"
+            <t t-snippet="tour_booking.s_tour_book" string="Calendar Only"
                group="tour_widgets"
                t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book.svg"
                t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_book.svg"/>
             <t t-snippet="tour_booking.s_tour_book_button" string="Book Now Button"
                group="tour_widgets"
-               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book_button.svg"/>
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book_button.svg"
+               t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_book_button.svg"/>
         </xpath>
     </template>
 
