@@ -44,31 +44,10 @@ SNIPPETS = {
             <div class="container"><div class="o_tour_snippet_content"/></div>
         </section>
     """,
-    "experience": """
-        <section class="s_tour_experience s_tour_dynamic"
-                 data-tour-widget="experience" data-tour-id="%(tour_id)s">
-            <div class="container"><div class="o_tour_snippet_content"/></div>
-        </section>
-    """,
     "unset": """
-        <section class="s_tour_experience s_tour_dynamic"
-                 data-tour-widget="experience">
+        <section class="s_tour_book s_tour_dynamic"
+                 data-tour-widget="book">
             <div class="container"><div class="o_tour_snippet_content"/></div>
-        </section>
-    """,
-    "button": """
-        <section class="s_tour_book_button s_tour_dynamic"
-                 data-tour-widget="button" data-tour-columns="3">
-            <div class="container">
-                <button type="button" class="btn btn-primary o_tour_book_open">Book now</button>
-                <div class="modal fade o_tour_book_modal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-xl">
-                        <div class="modal-content">
-                            <div class="modal-body o_tour_snippet_content"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </section>
     """,
     # The external embed, exercised through the loader an operator pastes. Same
@@ -172,20 +151,6 @@ class TestSnippets(HttpCase, TourCase):
             timeout=90,
         )
 
-    @freeze_time(TODAY)
-    def test_the_experience_block_draws_the_experience_and_the_calendar(self):
-        self.browser_js(
-            self._page("experience"),
-            """
-            if (!document.querySelector(".s_tour_experience .o_tour_widget")) {
-                throw new Error("The Experience block drew no booking widget.");
-            }
-            console.log('test successful');
-            """,
-            ready="!!document.querySelector('.s_tour_experience .o_tour_day')",
-            timeout=90,
-        )
-
     def test_a_block_with_no_experience_chosen_says_so(self):
         """What the operator sees the second after they drop it. An empty band
         of page tells them nothing about what to do next."""
@@ -199,34 +164,6 @@ class TestSnippets(HttpCase, TourCase):
             console.log('test successful');
             """,
             ready="!!document.querySelector('.o_tour_snippet_empty')",
-            timeout=90,
-        )
-
-    def test_the_book_now_button_opens_the_catalogue(self):
-        self.browser_js(
-            self._page("button"),
-            # Evaluated as a plain script, not a module, so there is no `await`
-            # to be had. Bootstrap adds `show` behind a transition, so the check
-            # waits in a timeout and reports through the console, which is what
-            # browser_js listens to either way.
-            """
-            document.querySelector(".o_tour_book_open").click();
-            setTimeout(() => {
-                try {
-                    const modal = document.querySelector(".o_tour_book_modal");
-                    if (!modal.classList.contains("show")) {
-                        throw new Error("Book now did not open the modal.");
-                    }
-                    if (!modal.querySelector(".o_tour_card")) {
-                        throw new Error("The modal opened with no experiences in it.");
-                    }
-                    console.log('test successful');
-                } catch (error) {
-                    console.error(error.message);
-                }
-            }, 800);
-            """,
-            ready="!!document.querySelector('.o_tour_book_modal .o_tour_card')",
             timeout=90,
         )
 
@@ -483,13 +420,28 @@ class TestSnippets(HttpCase, TourCase):
         """
         panel = self._snippet_panel()
 
-        for name in ["All Experiences", "One Experience, In Full",
-                     "Calendar Only", "Book Now Button"]:
+        for name in ["All Experiences", "Calendar Only"]:
             self.assertIn(
                 '<div name="%s" data-oe-type="snippet"' % name, panel,
                 "%s is not offered as a block." % name,
             )
         self.assertEqual(panel.count('data-oe-snippet-key="s_tour_book"'), 1)
+
+    def test_the_blocks_an_odoo_site_already_has_are_not_offered(self):
+        """A published experience already is `/tour/<slug>`, in full, and
+        `/tours` already is the catalogue. The blocks that drew a miniature of
+        one of those and linked to it were a worse copy of a page one click
+        away, and they are the reason nobody could work out where the real page
+        was. Deleted rather than renamed: the external embed still offers all
+        four, and that is where they belong.
+        """
+        panel = self._snippet_panel()
+
+        for key in ("s_tour_experience", "s_tour_book_button"):
+            self.assertNotIn(
+                'data-oe-snippet-key="%s"' % key, panel,
+                "%s is still offered in the editor." % key,
+            )
 
     def test_the_blocks_have_a_category_of_their_own_listed_first(self):
         """They were in Catalog, under everything e-commerce contributes, and
@@ -506,8 +458,7 @@ class TestSnippets(HttpCase, TourCase):
     def test_every_block_is_filed_under_tour_widgets(self):
         panel = self._snippet_panel()
 
-        for key in ("s_tour_experiences", "s_tour_experience",
-                    "s_tour_book", "s_tour_book_button"):
+        for key in ("s_tour_experiences", "s_tour_book"):
             entry = re.search(
                 r'<div[^>]*data-oe-snippet-key="%s"[^>]*>' % key, panel
             )
@@ -520,8 +471,7 @@ class TestSnippets(HttpCase, TourCase):
         operator is choosing between white rectangles."""
         panel = self._snippet_panel()
 
-        for key in ("s_tour_experiences", "s_tour_experience", "s_tour_book",
-                    "s_tour_book_button"):
+        for key in ("s_tour_experiences", "s_tour_book"):
             entry = re.search(
                 r'<div[^>]*data-oe-snippet-key="%s"[^>]*>' % key, panel
             )

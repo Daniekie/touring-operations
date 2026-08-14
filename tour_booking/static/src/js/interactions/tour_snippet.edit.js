@@ -18,16 +18,8 @@ import { TourSnippet } from "./tour_snippet";
  * serialises the page, so none of it is saved into the arch. That is the whole
  * reason these blocks are shells.
  */
-const TourSnippetEdit = (I) =>
-    class extends I {
-        /** Nothing to open from inside the editor: a modal over the page being
-         *  edited traps the operator behind content they cannot select. */
-        openModal() {}
-    };
-
 registry.category("public.interactions.edit").add("tour_booking.snippet", {
     Interaction: TourSnippet,
-    mixin: TourSnippetEdit,
 });
 
 /**

@@ -8,8 +8,13 @@ actually put on their home page.
 
 So the blocks are shells and this hands them their markup on every page load.
 Same fragments as the tour pages and the external embed — there is one copy of
-the card and one copy of the booking widget, and this is one of the four things
+the card and one copy of the booking widget, and this is one of the three things
 that draw them.
+
+Two widgets, not four. An Odoo site already has `/tours` and a page per
+experience, so the blocks that drew a miniature of one of those were dropped.
+The external embed still offers all four, because a site that is not this one
+has neither.
 """
 
 from odoo import http
@@ -30,7 +35,7 @@ class TourBookingSnippet(http.Controller):
         `widget` is matched against a fixed set, and an unknown one renders
         nothing rather than falling through to a default.
         """
-        if widget in ("experiences", "button"):
+        if widget == "experiences":
             return {"html": self._render("tour_booking.experience_grid", {
                 "tours": self._tours(limit),
                 "columns": self._columns(columns),
@@ -42,10 +47,6 @@ class TourBookingSnippet(http.Controller):
             # chosen yet, and the editor has to be able to draw it anyway.
             return {"html": ""}
 
-        if widget == "experience":
-            return {"html": self._render("tour_booking.experience_detail", dict(
-                tour_values(tour, kwargs), embedded=True,
-            ))}
         if widget == "book":
             return {"html": self._render(
                 "tour_booking.booking_widget", tour_values(tour, kwargs)

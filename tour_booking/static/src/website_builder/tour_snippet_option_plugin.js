@@ -4,12 +4,7 @@ import { Plugin } from "@html_editor/plugin";
 import { withSequence } from "@html_editor/utils/resource";
 import { registry } from "@web/core/registry";
 
-import {
-    TourBookButtonOption,
-    TourBookOption,
-    TourExperienceOption,
-    TourExperiencesOption,
-} from "./tour_snippet_option";
+import { TourBookOption, TourExperiencesOption } from "./tour_snippet_option";
 
 /**
  * Redraw a booking block after one of its options changed.
@@ -33,9 +28,7 @@ class TourSnippetOptionPlugin extends Plugin {
     resources = {
         builder_options: [
             withSequence(before(SNIPPET_SPECIFIC_END), TourExperiencesOption),
-            withSequence(before(SNIPPET_SPECIFIC_END), TourExperienceOption),
             withSequence(before(SNIPPET_SPECIFIC_END), TourBookOption),
-            withSequence(before(SNIPPET_SPECIFIC_END), TourBookButtonOption),
         ],
         builder_actions: { ReloadTourSnippetAction },
         // Lets these blocks be dropped inside a column rather than only as a

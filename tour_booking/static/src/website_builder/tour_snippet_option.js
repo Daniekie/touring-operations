@@ -32,20 +32,8 @@ export class TourExperiencesOption extends TourOptionBase {
     static selector = ".s_tour_experiences";
 }
 
-/** One experience, whole. */
-export class TourExperienceOption extends TourOptionBase {
-    static template = "tour_booking.TourExperienceOption";
-    static selector = ".s_tour_experience";
-}
-
-/** The booking box on its own. */
+/** The booking box on its own: which experience it sells. */
 export class TourBookOption extends TourOptionBase {
-    static template = "tour_booking.TourExperienceOption";
+    static template = "tour_booking.TourPickExperienceOption";
     static selector = ".s_tour_book";
-}
-
-/** The button, which opens the catalogue. */
-export class TourBookButtonOption extends TourOptionBase {
-    static template = "tour_booking.TourBookButtonOption";
-    static selector = ".s_tour_book_button";
 }

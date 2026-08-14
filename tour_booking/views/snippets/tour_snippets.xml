@@ -2,10 +2,23 @@
 <odoo>
 
     <!--
-        The four widgets, for an operator whose site is the Odoo one. Same
-        fragments as the external embed, but rendered straight into the page —
-        no iframe, no loader — because a page on the same instance already has
-        the visitor's session, so the booking form can simply post.
+        The two blocks that an Odoo site does not already have.
+
+        A tour published here already *is* a page — `/tour/<slug>`, written by
+        `tour_booking.tour_detail`, with the itinerary, the inclusions, the
+        meeting point and the cancellation terms on it — and `/tours` already is
+        the catalogue. So a block that draws one experience in miniature and
+        links to that page is a worse copy of something one click away, and a
+        Book now button that opens the catalogue in a modal is a link to
+        `/tours` with extra steps. Both were dropped; the editor's own button
+        block does the second one better.
+
+        What is left is the two things the site cannot do on its own: put the
+        catalogue *inside* a page the operator laid out, and put the booking box
+        on a page they wrote themselves.
+
+        All four still exist for the external embed, where none of them are
+        redundant — a WordPress site has no `/tours` and no tour page.
 
         Every one of these is a shell: `data-` attributes and an empty div. It
         has to be. The website editor saves the *rendered* DOM of a dropped
@@ -18,15 +31,6 @@
     <template id="s_tour_experiences" name="All Experiences">
         <section class="s_tour_experiences s_tour_dynamic pt32 pb32"
                  data-tour-widget="experiences" data-tour-columns="2">
-            <div class="container">
-                <div class="o_tour_snippet_content"/>
-            </div>
-        </section>
-    </template>
-
-    <template id="s_tour_experience" name="One Experience, In Full">
-        <section class="s_tour_experience s_tour_dynamic pt32 pb32"
-                 data-tour-widget="experience">
             <div class="container">
                 <div class="o_tour_snippet_content"/>
             </div>
@@ -48,35 +52,7 @@
         </section>
     </template>
 
-    <template id="s_tour_book_button" name="Book Now Button">
-        <section class="s_tour_book_button s_tour_dynamic pt32 pb32 text-center"
-                 data-tour-widget="button" data-tour-columns="3">
-            <div class="container">
-                <button type="button" class="btn btn-primary btn-lg o_tour_book_open">
-                    Book now
-                </button>
-                <div class="modal fade o_tour_book_modal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Choose an experience</h5>
-                                <button type="button" class="btn-close"
-                                        data-bs-dismiss="modal" aria-label="Close"/>
-                            </div>
-                            <div class="modal-body text-start o_tour_snippet_content"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </template>
-
     <!-- ==================== Registration ==================== -->
-    <!--
-        `catalog` is the group the block picker shows as Catalog — the same one
-        e-commerce puts Products in, which is where somebody looking for "the
-        thing that lists what I sell" will go.
-    -->
 
     <template id="snippets" inherit_id="website.snippets" name="Tour Booking snippets">
         <!-- A category of their own, first in the list. They were in Catalog,
@@ -96,26 +72,16 @@
 
              Every picture carries its own title, and the names below say what
              the block *does* rather than what it contains: the gallery shows
-             the pictures at full width with the names too small to read, so
-             "Experience" and "Experiences" were one letter apart and four
-             wireframes deep. -->
+             the pictures at full width with the names too small to read. -->
         <xpath expr="//snippets[@id='snippet_structure']/*[1]" position="before">
             <t t-snippet="tour_booking.s_tour_experiences" string="All Experiences"
                group="tour_widgets"
                t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experiences.svg"
                t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_experiences.svg"/>
-            <t t-snippet="tour_booking.s_tour_experience" string="One Experience, In Full"
-               group="tour_widgets"
-               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experience.svg"
-               t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_experience.svg"/>
             <t t-snippet="tour_booking.s_tour_book" string="Calendar Only"
                group="tour_widgets"
                t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book.svg"
                t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_book.svg"/>
-            <t t-snippet="tour_booking.s_tour_book_button" string="Book Now Button"
-               group="tour_widgets"
-               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book_button.svg"
-               t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_book_button.svg"/>
         </xpath>
     </template>
 

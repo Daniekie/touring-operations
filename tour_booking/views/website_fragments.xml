@@ -4,12 +4,12 @@
     <!--
         The three pieces of public markup, in one place.
 
-        Each of these is drawn in four different contexts: the module's own
-        pages, a website snippet dropped by an operator, an iframe on somebody
-        else's site, and the modal behind a Book now button. They were inline in
-        `website_templates.xml` when there was only one caller. A second copy is
-        how a card ends up showing the right price on the tour page and a stale
-        one in the embed, so there is exactly one.
+        Each of these is drawn in three different contexts: the module's own
+        pages, a website block dropped by an operator, and an iframe on somebody
+        else's site. They were inline in `website_templates.xml` when there was
+        only one caller. A second copy is how a card ends up showing the right
+        price on the tour page and a stale one in the embed, so there is exactly
+        one.
 
         `link_target` is the whole embed mechanism. On an Odoo site it is
         `_self` and links behave normally. Inside a cross-origin iframe it is

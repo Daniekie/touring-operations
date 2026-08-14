@@ -19,10 +19,6 @@ import { _t } from "@web/core/l10n/translation";
 export class TourSnippet extends Interaction {
     static selector = ".s_tour_dynamic";
 
-    dynamicContent = {
-        ".o_tour_book_open": { "t-on-click": () => this.openModal() },
-    };
-
     async willStart() {
         const data = this.el.dataset;
         this.html = "";
@@ -43,7 +39,7 @@ export class TourSnippet extends Interaction {
             return;
         }
         if (!this.html) {
-            // An experience block with nothing chosen yet. The operator is
+            // A booking block with no experience chosen yet. The operator is
             // looking at this in the editor and needs to be told what to do,
             // not left with an empty band of page.
             const hint = document.createElement("div");
@@ -58,13 +54,6 @@ export class TourSnippet extends Interaction {
         holder.innerHTML = this.html;
         for (const child of [...holder.children]) {
             this.insert(child, target);
-        }
-    }
-
-    openModal() {
-        const modal = this.el.querySelector(".o_tour_book_modal");
-        if (modal) {
-            window.Modal.getOrCreateInstance(modal).show();
         }
     }
 }

@@ -23,7 +23,7 @@
     </BuilderRow>
 </t>
 
-<t t-name="tour_booking.TourExperienceOption">
+<t t-name="tour_booking.TourPickExperienceOption">
     <BuilderRow label.translate="Experience">
         <BuilderSelect action="'reloadTourSnippet'" dataAttributeAction="'tourId'">
             <!-- `tour.id.toString()` and not `String(tour.id)`: Owl compiles a
@@ -35,16 +35,6 @@
                                dataAttributeActionValue="tour.id.toString()">
                 <t t-out="tour.name"/>
             </BuilderSelectItem>
-        </BuilderSelect>
-    </BuilderRow>
-</t>
-
-<t t-name="tour_booking.TourBookButtonOption">
-    <BuilderRow label.translate="Cards per row">
-        <BuilderSelect action="'reloadTourSnippet'" dataAttributeAction="'tourColumns'">
-            <BuilderSelectItem dataAttributeActionValue="'2'">2</BuilderSelectItem>
-            <BuilderSelectItem dataAttributeActionValue="'3'">3</BuilderSelectItem>
-            <BuilderSelectItem dataAttributeActionValue="'4'">4</BuilderSelectItem>
         </BuilderSelect>
     </BuilderRow>
 </t>
