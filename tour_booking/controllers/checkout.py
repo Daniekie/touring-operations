@@ -16,6 +16,8 @@ from odoo.tools import consteq
 
 from odoo.addons.payment.controllers import portal as payment_portal
 
+from .website import is_sellable
+
 # How many unfinished bookings one visitor may be sitting on at a time.
 #
 # A draft holds its seats, and nothing obliges the guest who opened it to ever
@@ -73,7 +75,7 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
         departure = request.env["tour.departure"].sudo().browse(
             int(departure_id or 0)
         ).exists()
-        if not departure or not departure.tour_id.is_published:
+        if not departure or not is_sellable(departure.tour_id):
             # Raised rather than returned. `not_found()` builds an exception,
             # and a controller that hands one back instead of throwing it gets
             # a "returns an HTTPException instead of raising it" warning on

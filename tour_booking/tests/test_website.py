@@ -1,4 +1,5 @@
 import base64
+import re
 
 from datetime import timedelta
 
@@ -102,6 +103,51 @@ class TestWebsite(HttpCase, TourCase):
         response = self.url_open(self.tour.website_url)
 
         self.assertEqual(response.status_code, 404)
+
+    def test_an_archived_tour_page_is_not_found(self):
+        """Archiving is how an operator takes an experience off the books.
+
+        It already removes the tour from the catalogue and from the website
+        menu, so a page that keeps answering — with a calendar, and a button
+        that still takes bookings — is the site disagreeing with itself about
+        what is for sale.
+        """
+        url = self.tour.website_url
+        self.tour.active = False
+
+        response = self.url_open(url)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_an_archived_tour_offers_no_availability(self):
+        month = self.departure.date.strftime("%Y-%m")
+        self.tour.active = False
+
+        self.assertEqual(self._availability(month)["days"], {})
+
+    def test_an_archived_tour_cannot_be_booked(self):
+        departure = self.departure
+        # Read the token off the live page first: it belongs to the session
+        # rather than to the page, and once the tour is archived there is no
+        # page left to read it from. Without one the POST is refused as a
+        # forgery and this would pass without ever reaching the controller.
+        token = re.search(
+            r'name="csrf_token"[^>]*value="([^"]+)"',
+            self.url_open(self.tour.website_url).text,
+        ).group(1)
+        self.tour.active = False
+
+        response = self.opener.post(
+            self.base_url() + "/tour/book",
+            data={"departure_id": departure.id, "pax": 1, "csrf_token": token},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            self.env["tour.booking"].search_count([("departure_id", "=", departure.id)]),
+            0,
+            "An archived experience sold a seat.",
+        )
 
     # --- The availability feed --------------------------------------------
 

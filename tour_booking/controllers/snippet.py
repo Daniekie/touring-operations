@@ -20,7 +20,7 @@ has neither.
 from odoo import http
 from odoo.http import request
 
-from .website import published_domain, tour_values
+from .website import is_sellable, published_domain, tour_values
 
 
 class TourBookingSnippet(http.Controller):
@@ -68,7 +68,7 @@ class TourBookingSnippet(http.Controller):
             tour = request.env["tour.tour"].sudo().browse(int(tour_id or 0)).exists()
         except (TypeError, ValueError):
             return None
-        return tour if tour and tour.is_published else None
+        return tour if is_sellable(tour) else None
 
     def _columns(self, raw):
         try:

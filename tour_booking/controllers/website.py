@@ -17,7 +17,23 @@ def published_domain():
     # sudo() is used to read tours for anonymous visitors, so the published
     # flag has to be the access rule. It is applied here, once, rather than
     # trusted to each caller.
-    return [("is_published", "=", True)]
+    #
+    # `active` is spelled out rather than left to the ORM's own filtering: the
+    # same question is asked of a single record by `is_sellable` below, where
+    # there is no search to do the filtering, and the two answers have to agree.
+    return [("is_published", "=", True), ("active", "=", True)]
+
+
+def is_sellable(tour_sudo):
+    """May this experience be shown and sold to the public? -> bool.
+
+    Publication is the operator's answer to "is this live"; archiving is their
+    answer to "do we still run this at all". Checking only the first meant an
+    archived experience vanished from the catalogue and from the website menu
+    while its page kept answering, its calendar kept offering dates and its
+    button kept taking bookings.
+    """
+    return bool(tour_sudo) and tour_sudo.is_published and tour_sudo.active
 
 
 def month_of(raw):
@@ -135,7 +151,7 @@ class TourBookingWebsite(http.Controller):
         sitemap=True,
     )
     def tour(self, tour, **kwargs):
-        if not tour.sudo().is_published:
+        if not is_sellable(tour.sudo()):
             # Raised, not returned: `not_found()` builds the exception and
             # handing it back logs a warning on every hit.
             raise request.not_found()
@@ -167,7 +183,7 @@ class TourBookingWebsite(http.Controller):
         — the same one the booking itself is checked against.
         """
         tour = request.env["tour.tour"].sudo().browse(tour_id).exists()
-        if not tour or not tour.is_published:
+        if not is_sellable(tour):
             return {"days": {}}
 
         first = self._month_of(month)

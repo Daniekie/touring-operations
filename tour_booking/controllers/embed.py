@@ -20,7 +20,7 @@ in exchange for a checkout that works in every browser.
 from odoo import http
 from odoo.http import request
 
-from .website import published_domain, tour_values
+from .website import is_sellable, published_domain, tour_values
 
 
 class TourBookingEmbed(http.Controller):
@@ -117,7 +117,7 @@ class TourBookingEmbed(http.Controller):
     # the page that should be indexed is the tour's own.
     def _tour_or_404(self, tour_id):
         tour = request.env["tour.tour"].sudo().browse(tour_id).exists()
-        return tour if tour and tour.is_published else None
+        return tour if is_sellable(tour) else None
 
     @http.route(
         ["/tour/embed/experience/<int:tour_id>"],
