@@ -15,6 +15,14 @@ _logger = logging.getLogger(__name__)
 # How long a checkout may sit unfinished before its seats go back on sale.
 DRAFT_LIFETIME_MINUTES = 30
 
+# How many abandoned checkouts one reaper run will take on.
+#
+# The run happens every fifteen minutes, during trading hours, and holds row
+# locks on everything it touches. A backlog — an outage, or a bot that spent the
+# night opening checkouts — must not turn one of those runs into a single
+# enormous transaction; what it does not reach, the next run does.
+REAPER_BATCH = 200
+
 
 class TourBooking(models.Model):
     """Seats on one departure, sold to one guest.
@@ -677,9 +685,28 @@ class TourBooking(models.Model):
         failure state.
         """
         cutoff = fields.Datetime.now() - relativedelta(minutes=DRAFT_LIFETIME_MINUTES)
-        stale = self.search([("state", "=", "draft"), ("create_date", "<", cutoff)])
+        stale = self.search(
+            [("state", "=", "draft"), ("create_date", "<", cutoff)],
+            limit=REAPER_BATCH,
+        )
+        if not stale:
+            return stale
+
+        # Lock the rows before deciding, and read the payment state again once
+        # they are held. Filtering first and writing afterwards left a gap wide
+        # enough for a provider's callback to land in: the guest's transaction
+        # reaches `done`, this run has already decided otherwise, and the
+        # booking is cancelled under a guest who has paid. Anything confirming
+        # one of these now waits for us to finish.
+        self.env.flush_all()
+        self.env.cr.execute(
+            "SELECT id FROM tour_booking WHERE id = ANY(%s) FOR UPDATE", [stale.ids]
+        )
+        stale.invalidate_recordset(["state"])
+        stale.transaction_ids.invalidate_recordset(["state"])
+
         abandoned = stale.filtered(
-            lambda b: all(
+            lambda b: b.state == "draft" and all(
                 tx.state in DEAD_TRANSACTION_STATES for tx in b.transaction_ids
             )
         )

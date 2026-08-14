@@ -2,6 +2,8 @@ from datetime import timedelta
 
 from odoo import fields
 
+from odoo.addons.tour_booking.models import tour_booking
+
 from .common import TourCase
 
 
@@ -31,6 +33,38 @@ class TestReaper(TourCase):
 
         self.assertEqual(booking.state, "cancelled")
         self.assertEqual(departure.seats_available, 4, "The seats went back on sale.")
+
+    def test_the_reaper_works_in_bounded_batches(self):
+        """It ran `search()` with no limit and then loaded every stale draft's
+        transactions into memory.
+
+        On a quiet database that is nothing. After an outage, or a bot that
+        spent a night opening checkouts, it is one enormous transaction holding
+        row locks on the whole backlog — during trading hours, because it runs
+        every fifteen minutes. A run that takes a fixed bite and leaves the rest
+        for the next one has no such worst case.
+        """
+        # The batch size is patched rather than honoured: the behaviour under
+        # test is "takes a fixed bite and leaves the rest", and asserting it at
+        # the production size would mean two hundred bookings and the seats to
+        # put them on.
+        self.patch(tour_booking, "REAPER_BATCH", 3)
+        departure = self._departure(capacity=10)
+        stale = self.env["tour.booking"]
+        for _ in range(5):
+            booking = self._booking(departure=departure, pax=1)
+            self._age(booking, 45)
+            stale |= booking
+
+        first = self.env["tour.booking"]._cron_release_abandoned_drafts()
+
+        self.assertEqual(len(first), 3)
+        self.assertEqual(len(stale.filtered(lambda b: b.state == "draft")), 2)
+
+        second = self.env["tour.booking"]._cron_release_abandoned_drafts()
+
+        self.assertEqual(len(second), 2, "The rest were never picked up.")
+        self.assertFalse(stale.filtered(lambda b: b.state == "draft"))
 
     def test_the_reaper_leaves_a_recent_draft_alone(self):
         booking = self._booking(pax=2)
