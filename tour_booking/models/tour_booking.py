@@ -401,11 +401,23 @@ class TourBooking(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # Context defaults are applied by the ORM inside `super().create()`,
+        # which is after everything below has run. Resolving them here is not
+        # tidiness: without it a booking made from a departure's own action —
+        # where the departure arrives as `default_departure_id` — would take
+        # its seats without the capacity check ever seeing them.
+        defaults = self.default_get(["departure_id"])
         wanted = defaultdict(int)
         for vals in vals_list:
+            if not vals.get("departure_id") and defaults.get("departure_id"):
+                vals["departure_id"] = defaults["departure_id"]
             if vals.get("name", "/") == "/":
                 vals["name"] = self.env["ir.sequence"].next_by_code("tour.booking") or "/"
-            departure = self.env["tour.departure"].browse(vals["departure_id"])
+            # `.get`, not `[...]`: with no departure named anywhere there is
+            # nothing to read a price or a policy off and nothing to hold seats
+            # on, and that has to reach the ORM's own required-field check as a
+            # missing value rather than dying here as a `KeyError` and a 500.
+            departure = self.env["tour.departure"].browse(vals.get("departure_id"))
             if "cancellation_policy_id" not in vals:
                 vals["cancellation_policy_id"] = departure.tour_id.cancellation_policy_id.id
             # The terms of the sale, taken from the tour once and then this
@@ -416,7 +428,7 @@ class TourBooking(models.Model):
             if "tax_ids" not in vals:
                 vals["tax_ids"] = [fields.Command.set(departure.tour_id.tax_ids.ids)]
             # A draft holds its seats exactly like a confirmed booking does.
-            if vals.get("state", "draft") in SEAT_HOLDING_STATES:
+            if departure and vals.get("state", "draft") in SEAT_HOLDING_STATES:
                 wanted[departure.id] += vals.get("pax", 1)
 
         # Seats are taken here, under the lock, before the rows exist — once per

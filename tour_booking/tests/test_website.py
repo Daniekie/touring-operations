@@ -119,6 +119,21 @@ class TestWebsite(HttpCase, TourCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_a_nonsense_departure_id_is_a_404_rather_than_a_crash(self):
+        """`pax` was guarded and the departure was not, so a query string a
+        crawler invents served a traceback instead of a miss."""
+        token = re.search(
+            r'name="csrf_token"[^>]*value="([^"]+)"',
+            self.url_open(self.tour.website_url).text,
+        ).group(1)
+
+        response = self.opener.post(
+            self.base_url() + "/tour/book",
+            data={"departure_id": "not-a-number", "pax": 1, "csrf_token": token},
+        )
+
+        self.assertEqual(response.status_code, 404)
+
     def test_an_archived_tour_offers_no_availability(self):
         month = self.departure.date.strftime("%Y-%m")
         self.tour.active = False

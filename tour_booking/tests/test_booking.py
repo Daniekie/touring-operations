@@ -1,7 +1,10 @@
 from datetime import timedelta
 
+from psycopg2 import IntegrityError
+
 from odoo import fields
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import mute_logger
 
 from .common import TourCase
 
@@ -289,6 +292,34 @@ class TestBooking(TourCase):
 
         self.assertEqual(booking.state, "confirmed")
         self.assertEqual(departure.seats_sold, 3)
+
+    def test_a_departure_supplied_as_a_context_default_is_accepted(self):
+        """The back office passes the departure this way.
+
+        `create` read `vals["departure_id"]` directly, but a default from the
+        context is applied by the ORM *inside* `super().create()` — after this
+        override has already run. Reaching for the key raised `KeyError` and
+        served a 500 in place of the ordinary required-field message.
+        """
+        departure = self._departure(capacity=10)
+
+        booking = self.env["tour.booking"].with_context(
+            default_departure_id=departure.id
+        ).create({"partner_id": self.partner.id, "pax": 2})
+
+        self.assertEqual(booking.departure_id, departure)
+        self.assertEqual(departure.seats_sold, 2)
+
+    def test_a_booking_with_no_departure_at_all_is_refused_by_the_column(self):
+        """Refused for being incomplete, which is the ordinary refusal a
+        required field gets, rather than for a `KeyError` raised on the way to
+        finding that out."""
+        with mute_logger("odoo.sql_db"), self.assertRaises(IntegrityError):
+            with self.env.cr.savepoint():
+                self.env["tour.booking"].create({
+                    "partner_id": self.partner.id, "pax": 1,
+                })
+                self.env.flush_all()
 
     def test_a_booking_gets_a_reference_and_an_access_token(self):
         booking = self._booking(pax=1)

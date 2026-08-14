@@ -72,9 +72,14 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
         claim — because a value that arrives from a browser is a request, not a
         fact.
         """
-        departure = request.env["tour.departure"].sudo().browse(
-            int(departure_id or 0)
-        ).exists()
+        try:
+            departure_id = int(departure_id or 0)
+        except (TypeError, ValueError):
+            # Whatever this is, it names no departure. A crawler inventing a
+            # query string gets the same miss as a stale link, rather than a
+            # traceback.
+            departure_id = 0
+        departure = request.env["tour.departure"].sudo().browse(departure_id).exists()
         if not departure or not is_sellable(departure.tour_id):
             # Raised rather than returned. `not_found()` builds an exception,
             # and a controller that hands one back instead of throwing it gets
