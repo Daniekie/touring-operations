@@ -75,6 +75,14 @@ There is deliberately no channel synchronisation with any OTA.
             "tour_booking/static/src/js/interactions/tour_calendar.js",
             "tour_booking/static/src/js/interactions/tour_snippet.js",
             "tour_booking/static/src/js/interactions/embed_frame.js",
+            # `*.edit.js` is deliberately absent: it registers against the
+            # builder, which a visitor does not have. Listing these files one
+            # by one rather than by glob is what keeps it out.
+        ],
+        # Inside the builder's iframe, which is where a block being edited
+        # lives. Without this the blocks draw nothing until the page is saved.
+        "website.assets_inside_builder_iframe": [
+            "tour_booking/static/src/js/interactions/*.edit.js",
         ],
         # The option panels for the booking blocks. Editor-only, so they cost
         # a visitor nothing.

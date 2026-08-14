@@ -13,6 +13,7 @@ shipped twice.
 """
 
 import json
+import re
 
 from odoo.tests import tagged
 from odoo.tests.common import HttpCase, freeze_time
@@ -455,23 +456,43 @@ class TestSnippets(HttpCase, TourCase):
             )
         self.assertEqual(panel.count('data-oe-snippet-key="s_tour_book"'), 1)
 
-    def test_the_booking_blocks_lead_the_catalog_group(self):
-        """Order inside a group is document order. Appended, these land below
-        everything e-commerce contributes and fall off the bottom of the panel
-        on any site that also sells something."""
+    def test_the_blocks_have_a_category_of_their_own_listed_first(self):
+        """They were in Catalog, under everything e-commerce contributes, and
+        were simply not findable. Catalog also already means "the things you
+        sell" on a site with a shop."""
         panel = self._snippet_panel()
 
-        ours = panel.find('data-oe-snippet-key="s_tour_experiences"')
-        others = [
-            panel.find(mark) for mark in (
-                'data-oe-snippet-key="s_dynamic_snippet_products"',
-                'data-oe-snippet-key="s_dynamic_snippet_category_list"',
+        ours = panel.find('data-o-snippet-group="tour_widgets"')
+        self.assertNotEqual(ours, -1, "There is no Tour Widgets category.")
+        for other in ("intro", "columns", "catalog"):
+            position = panel.find('data-o-snippet-group="%s"' % other)
+            self.assertLess(ours, position, "%s comes before Tour Widgets." % other)
+
+    def test_every_block_is_filed_under_tour_widgets(self):
+        panel = self._snippet_panel()
+
+        for key in ("s_tour_experiences", "s_tour_experience",
+                    "s_tour_book", "s_tour_book_button"):
+            entry = re.search(
+                r'<div[^>]*data-oe-snippet-key="%s"[^>]*>' % key, panel
             )
-        ]
-        self.assertNotEqual(ours, -1)
-        for position in others:
-            if position != -1:
-                self.assertLess(ours, position)
+            self.assertIsNotNone(entry, "%s is not offered at all." % key)
+            self.assertIn('data-o-group="tour_widgets"', entry.group(0), key)
+
+    def test_the_fetched_blocks_preview_as_a_picture(self):
+        """The gallery previews a block by rendering it, and these render as an
+        empty shell until their content is fetched. Without a picture an
+        operator is choosing between white rectangles."""
+        panel = self._snippet_panel()
+
+        for key in ("s_tour_experiences", "s_tour_experience", "s_tour_book"):
+            entry = re.search(
+                r'<div[^>]*data-oe-snippet-key="%s"[^>]*>' % key, panel
+            )
+            self.assertIn(
+                'data-o-image-preview="/tour_booking/static/src/img/snippets_previews/',
+                entry.group(0), key,
+            )
 
     def _snippet_panel(self):
         """The Blocks panel markup, fetched as the builder fetches it.
@@ -488,3 +509,40 @@ class TestSnippets(HttpCase, TourCase):
             },
         }), headers={"Content-Type": "application/json"})
         return response.json()["result"]
+
+    def test_a_block_draws_its_content_inside_the_editor(self):
+        """The gap that let a white band ship.
+
+        An interaction registered only in `public.interactions` does not run
+        while editing, so these blocks drew nothing until the page was saved.
+        Every test above loads the page as a visitor, where it worked
+        perfectly — which is exactly why none of them noticed.
+        """
+        path = self._page("book")
+        self.browser_js(
+            "/odoo/action-website.website_preview?path=%s&enable_editor=1" % path,
+            """
+            // The editor draws two iframes; the one holding the page being
+            // edited is not the fallback, so it is found by its content.
+            const frame = [...document.querySelectorAll("iframe")].find(
+                (f) => f.contentDocument && f.contentDocument.querySelector(".s_tour_book"));
+            const block = frame.contentDocument.querySelector(".s_tour_book");
+            if (!block.querySelector(".o_tour_widget")) {
+                throw new Error("The block drew nothing in the editor.");
+            }
+            if (!block.querySelector(".o_tour_day")) {
+                throw new Error("The block drew a card around an empty calendar.");
+            }
+            console.log('test successful');
+            """,
+            ready="""
+                (() => {
+                    const f = [...document.querySelectorAll('iframe')].find(
+                        (x) => x.contentDocument
+                            && x.contentDocument.querySelector('.s_tour_book .o_tour_day'));
+                    return !!f;
+                })()
+            """,
+            login="admin",
+            timeout=120,
+        )

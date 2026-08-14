@@ -79,23 +79,35 @@
     -->
 
     <template id="snippets" inherit_id="website.snippets" name="Tour Booking snippets">
-        <!-- Before the first structural snippet, not appended after the last.
-             Order inside a group follows document order, so appending puts
-             these below every block e-commerce contributes to Catalog — off
-             the bottom of the panel on a site that sells anything else. On an
-             instance with this module installed, tours are the catalogue. -->
+        <!-- A category of their own, first in the list. They were in Catalog,
+             where they sat under everything e-commerce contributes and were
+             not findable; and Catalog means "the things you sell", which on a
+             site with a shop is already taken. -->
+        <xpath expr="//snippets[@id='snippet_groups']/*[1]" position="before">
+            <t snippet-group="tour_widgets" t-snippet="website.s_snippet_group"
+               string="Tour Widgets"
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_group.svg"/>
+        </xpath>
+
+        <!-- `t-image-preview` because the gallery previews a block by rendering
+             it, and these render as an empty shell until their content is
+             fetched — which is a white rectangle in the picker and tells an
+             operator nothing about what they are about to drop. -->
         <xpath expr="//snippets[@id='snippet_structure']/*[1]" position="before">
             <t t-snippet="tour_booking.s_tour_experiences" string="Experiences"
-               group="catalog"
-               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experiences.svg"/>
+               group="tour_widgets"
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experiences.svg"
+               t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_experiences.svg"/>
             <t t-snippet="tour_booking.s_tour_experience" string="Experience"
-               group="catalog"
-               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experience.svg"/>
+               group="tour_widgets"
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experience.svg"
+               t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_experience.svg"/>
             <t t-snippet="tour_booking.s_tour_book" string="Booking Box"
-               group="catalog"
-               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book.svg"/>
+               group="tour_widgets"
+               t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book.svg"
+               t-image-preview="/tour_booking/static/src/img/snippets_previews/s_tour_book.svg"/>
             <t t-snippet="tour_booking.s_tour_book_button" string="Book Now Button"
-               group="catalog"
+               group="tour_widgets"
                t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_book_button.svg"/>
         </xpath>
     </template>
