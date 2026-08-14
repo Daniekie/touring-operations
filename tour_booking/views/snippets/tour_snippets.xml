@@ -79,7 +79,12 @@
     -->
 
     <template id="snippets" inherit_id="website.snippets" name="Tour Booking snippets">
-        <xpath expr="//snippets[@id='snippet_structure']" position="inside">
+        <!-- Before the first structural snippet, not appended after the last.
+             Order inside a group follows document order, so appending puts
+             these below every block e-commerce contributes to Catalog — off
+             the bottom of the panel on a site that sells anything else. On an
+             instance with this module installed, tours are the catalogue. -->
+        <xpath expr="//snippets[@id='snippet_structure']/*[1]" position="before">
             <t t-snippet="tour_booking.s_tour_experiences" string="Experiences"
                group="catalog"
                t-thumbnail="/tour_booking/static/src/img/snippets_thumbs/s_tour_experiences.svg"/>

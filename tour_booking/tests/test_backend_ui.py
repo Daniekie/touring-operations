@@ -116,9 +116,61 @@ class TestBackendUI(HttpCase):
                     throw new Error(`"${tab}" is not in the second row: ${labels(optional)}`);
                 }
             }
+            // Only what somebody actually has to decide belongs above the
+            // tabs. Everything with a working default drifts back up there one
+            // field at a time unless something says otherwise.
+            const sheet = document.querySelector(".o_form_sheet");
+            const above = [...sheet.querySelectorAll("[name]")]
+                .filter((el) =>
+                    required.compareDocumentPosition(el) &
+                    Node.DOCUMENT_POSITION_PRECEDING)
+                .map((el) => el.getAttribute("name"));
+            for (const field of ["duration_hours", "default_capacity", "price_per_person"]) {
+                if (!above.includes(field)) {
+                    throw new Error(`${field} should be above the tabs: ${above}`);
+                }
+            }
+            for (const field of ["location_id", "has_specific_time",
+                                 "booking_cutoff_hours", "cancellation_policy_id"]) {
+                if (above.includes(field)) {
+                    throw new Error(`${field} has a default and belongs under Optional.`);
+                }
+            }
             console.log('test successful');
             """,
             ready="!!document.querySelector('.o_form_view .o_notebook')",
+            login="admin",
+            timeout=90,
+        )
+
+    def test_editing_an_experience_shows_the_publish_control(self):
+        """Putting a tour on sale is the one decision on that form, so it uses
+        Odoo's own publish control rather than a checkbox.
+
+        A saved record, because the control is hidden until there is something
+        to publish — which means the new-experience test above never renders it,
+        and a wrong widget name would crash only for an operator opening a tour
+        they already had.
+        """
+        tour = self.env["tour.tour"].create({
+            "name": "Publishable",
+            "duration_hours": 2.0,
+            "default_capacity": 8,
+            "price_per_person": 30.0,
+            "has_specific_time": False,
+        })
+        self.browser_js(
+            "/odoo/action-tour_booking.tour_tour_action/%s" % tour.id,
+            """
+            if (!document.querySelector(".o_form_view .o_menu_systray, .o_form_view")) {
+                throw new Error("The experience form did not open.");
+            }
+            if (!document.querySelector('[name="is_published"]')) {
+                throw new Error("The publish control did not render.");
+            }
+            console.log('test successful');
+            """,
+            ready="!!document.querySelector('.o_form_view [name=\"is_published\"]')",
             login="admin",
             timeout=90,
         )

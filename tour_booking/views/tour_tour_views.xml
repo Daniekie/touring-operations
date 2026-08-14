@@ -96,6 +96,12 @@
                             string="Calendar" class="oe_highlight" invisible="not id"/>
                     <button name="action_share" type="object"
                             string="Put on a website" invisible="not id"/>
+                    <!-- Putting it on sale is the one thing on this form that
+                         is a decision rather than a setting, so it gets Odoo's
+                         own publish control rather than a checkbox in a list of
+                         fields. Nothing to publish before the record exists. -->
+                    <field name="is_published" widget="website_publish_button"
+                           invisible="not id"/>
                 </header>
                 <sheet>
                     <!-- `id` has to be on the form for the expressions above and
@@ -122,18 +128,19 @@
                         <h1><field name="name" placeholder="Sunset Tour"/></h1>
                     </div>
 
+                    <!-- The four things that have no sensible default and that
+                         somebody has to decide before this can be sold. Meeting
+                         point, start times and the cut-off all ship with an
+                         answer that is right most of the time, so they live
+                         under Optional with the rest of the settings. -->
                     <group>
                         <group string="The Basics">
                             <field name="duration_hours" widget="float_time"/>
                             <field name="default_capacity"/>
+                        </group>
+                        <group string="Pricing">
                             <field name="price_per_person"/>
                             <field name="tax_ids" widget="many2many_tags"/>
-                        </group>
-                        <group string="Where and When">
-                            <field name="location_id" options="{'no_create_edit': True}"/>
-                            <field name="has_specific_time"/>
-                            <field name="booking_cutoff_hours"/>
-                            <field name="is_published" widget="boolean_toggle"/>
                         </group>
                     </group>
 
@@ -180,13 +187,17 @@
                              They are optional, so they live under Optional. -->
                         <page string="Settings" name="optional_settings">
                             <group>
-                                <group>
-                                    <field name="cancellation_policy_id"
+                                <group string="Where and When">
+                                    <field name="location_id"
                                            options="{'no_create_edit': True}"/>
                                     <field name="meeting_point_note"
                                            placeholder="Ask for Marco at the counter"/>
+                                    <field name="has_specific_time"/>
+                                    <field name="booking_cutoff_hours"/>
                                 </group>
-                                <group>
+                                <group string="Terms">
+                                    <field name="cancellation_policy_id"
+                                           options="{'no_create_edit': True}"/>
                                     <field name="company_id" groups="base.group_multi_company"/>
                                     <field name="active" widget="boolean_toggle"/>
                                 </group>

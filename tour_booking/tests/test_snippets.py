@@ -12,6 +12,8 @@ drawn and passes whatever happens next, which is exactly how a broken kanban
 shipped twice.
 """
 
+import json
+
 from odoo.tests import tagged
 from odoo.tests.common import HttpCase, freeze_time
 
@@ -434,3 +436,55 @@ class TestSnippets(HttpCase, TourCase):
             login="admin",
             timeout=120,
         )
+
+    def test_the_booking_blocks_are_offered_in_the_block_picker(self):
+        """What the editor's Blocks panel is actually handed.
+
+        The obvious checks are both worthless here and I made them both: our
+        own inheriting view's arch says nothing about whether the inheritance
+        applied, and the option plugin registering says nothing about whether
+        the blocks are listed. This renders the panel the way the builder does
+        and looks for the entries in it.
+        """
+        panel = self._snippet_panel()
+
+        for name in ["Experiences", "Experience", "Booking Box", "Book Now Button"]:
+            self.assertIn(
+                '<div name="%s" data-oe-type="snippet"' % name, panel,
+                "%s is not offered as a block." % name,
+            )
+        self.assertEqual(panel.count('data-oe-snippet-key="s_tour_book"'), 1)
+
+    def test_the_booking_blocks_lead_the_catalog_group(self):
+        """Order inside a group is document order. Appended, these land below
+        everything e-commerce contributes and fall off the bottom of the panel
+        on any site that also sells something."""
+        panel = self._snippet_panel()
+
+        ours = panel.find('data-oe-snippet-key="s_tour_experiences"')
+        others = [
+            panel.find(mark) for mark in (
+                'data-oe-snippet-key="s_dynamic_snippet_products"',
+                'data-oe-snippet-key="s_dynamic_snippet_category_list"',
+            )
+        ]
+        self.assertNotEqual(ours, -1)
+        for position in others:
+            if position != -1:
+                self.assertLess(ours, position)
+
+    def _snippet_panel(self):
+        """The Blocks panel markup, fetched as the builder fetches it.
+
+        Through the web client rather than by calling the model directly: the
+        templates read `request`, which does not exist in a test's own thread.
+        """
+        self.authenticate("admin", "admin")
+        response = self.url_open("/web/dataset/call_kw", data=json.dumps({
+            "jsonrpc": "2.0", "method": "call",
+            "params": {
+                "model": "ir.ui.view", "method": "render_public_asset",
+                "args": ["website.snippets", {}], "kwargs": {},
+            },
+        }), headers={"Content-Type": "application/json"})
+        return response.json()["result"]
