@@ -1,3 +1,5 @@
+from markupsafe import Markup
+
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -109,6 +111,17 @@ class TourTour(models.Model):
     booking_count = fields.Integer(compute="_compute_counts")
     duration_display = fields.Char(compute="_compute_duration_display")
 
+    # `website_url` comes from the mixin and is the path. This is the whole
+    # address, which is what somebody wanting to send it to a guest, paste it
+    # into Instagram or simply check the page exists actually needs — a bare
+    # `/tour/sunset-3` is not something an operator can do anything with.
+    website_full_url = fields.Char(
+        string="Page Address",
+        compute="_compute_website_url",
+        help="The public page for this experience. Odoo writes it; there is "
+             "nothing to create in the website editor.",
+    )
+
     @api.depends("duration_hours")
     def _compute_duration_display(self):
         """"3h 30m" for a card. Computed here rather than formatted in QWeb so
@@ -140,8 +153,28 @@ class TourTour(models.Model):
 
     @api.depends("name")
     def _compute_website_url(self):
+        """The page's path, and its whole address.
+
+        Built from `web.base.url` rather than the request, for the same reason
+        the embed wizard does: the address an operator copies has to be the one
+        their instance answers on, not the proxy hostname this form happened to
+        be served through.
+
+        The slug carries the name, so renaming an experience changes the URL.
+        Nothing breaks — the route resolves on the id at the end of the slug, so
+        every address ever handed out keeps working — but it is why the form
+        shows this rather than an operator writing it down once.
+        """
+        base = self.env["ir.config_parameter"].sudo().get_param("web.base.url", "")
+        base = (base or "").rstrip("/")
         for tour in self:
+            # A form being filled in has a `NewId`, which has no page and would
+            # slug into something meaningless.
+            if not isinstance(tour.id, int):
+                tour.website_url = tour.website_full_url = False
+                continue
             tour.website_url = "/tour/%s" % self.env["ir.http"]._slug(tour)
+            tour.website_full_url = base + tour.website_url
 
     @api.constrains("duration_hours", "default_capacity", "booking_cutoff_hours")
     def _check_positive(self):
@@ -173,15 +206,62 @@ class TourTour(models.Model):
                     tour.name,
                 ))
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Create the record, and say in the chatter that a page now exists.
+
+        Creating an experience creates a website page, and nothing in Odoo says
+        so: the page is not in the website editor's page list, there is no
+        "create a page" step, and an operator who has not been told goes looking
+        for one. The confirmation on the form below is the loud version and is
+        gone the moment it is dismissed; this is the copy that is still there
+        next month, on the record it belongs to.
+        """
+        tours = super().create(vals_list)
+        for tour in tours:
+            tour.message_post(body=Markup("%s <a href=\"%s\">%s</a>") % (
+                _("Website page created:"), tour.website_url, tour.website_full_url,
+            ))
+        return tours
+
     def action_confirm(self):
-        """Save, and nothing else.
+        """Save, and say where the page went.
 
         There is no state to advance — a tour is either published or it is not,
-        and that is its own toggle. This exists purely so a half-filled form has
-        a button on it that says what pressing it does: Odoo saves a record
-        before running an object button, so the save is the entire effect.
+        and that is its own toggle. The button exists so a half-filled form has
+        something on it that says what pressing it does, because Odoo saves a
+        record before running an object button and the save is the entire
+        effect.
+
+        What it returns is the other half. This button is only ever on a record
+        that does not exist yet (`invisible="id"`), so reaching here means a page
+        was just created, and the one thing an operator cannot find on their own
+        is where. Sticky, because a toast that fades in four seconds is not how
+        you hand somebody a URL.
         """
-        return True
+        self.ensure_one()
+        # `%s` is where `links` is substituted, so the address itself is the
+        # clickable part rather than a "click here" sitting next to it.
+        message = (
+            _("Your page is at %s")
+            if self.is_published
+            else _("Your page is at %s — it goes live for visitors when you "
+                   "publish it.")
+        )
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("New tour page created"),
+                "message": message,
+                "links": [{
+                    "label": self.website_full_url,
+                    "url": self.website_url,
+                }],
+                "type": "success",
+                "sticky": True,
+            },
+        }
 
     def action_share(self):
         """The code for putting this experience on a website.

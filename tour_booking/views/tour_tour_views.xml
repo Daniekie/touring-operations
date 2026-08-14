@@ -14,6 +14,10 @@
                 <field name="currency_id" column_invisible="1"/>
                 <field name="default_capacity"/>
                 <field name="departure_count" string="Scheduled"/>
+                <!-- The page each row already has. Shown rather than optional
+                     and hidden: an operator browsing this list is the operator
+                     who cannot find their tour pages. -->
+                <field name="website_url" string="Page" widget="url" optional="show"/>
                 <field name="is_published" widget="boolean_toggle"/>
             </list>
         </field>
@@ -60,6 +64,12 @@
                                 <span class="text-muted">
                                     <field name="departure_count"/> scheduled
                                 </span>
+                            </div>
+                            <!-- The card is a picture of the page, so it may as
+                                 well say where the page is. -->
+                            <div class="text-muted small text-truncate mt-1">
+                                <i class="fa fa-globe me-1" title="Website page"/>
+                                <field name="website_url" widget="url"/>
                             </div>
                         </div>
                     </t>
@@ -126,6 +136,22 @@
                     <div class="oe_title">
                         <label for="name"/>
                         <h1><field name="name" placeholder="Sunset Tour"/></h1>
+                        <!-- Where this experience lives on the website.
+                             Under the name rather than in a tab or behind the
+                             Share button, because the question it answers —
+                             "where is my page?" — is asked by somebody who does
+                             not know the page exists, and so will not go
+                             looking for it anywhere. There is nothing to create
+                             in the website editor: saving this record is what
+                             makes the page. -->
+                        <div class="o_tour_page_url text-muted" invisible="not id">
+                            <i class="fa fa-globe me-1" title="Website page"/>
+                            <field name="website_full_url" widget="url" nolabel="1"
+                                   readonly="1" class="oe_inline"/>
+                            <span invisible="is_published" class="ms-1">
+                                — not visible to visitors until you publish it.
+                            </span>
+                        </div>
                     </div>
 
                     <!-- The four things that have no sensible default and that
