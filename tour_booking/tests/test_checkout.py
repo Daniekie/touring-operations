@@ -83,6 +83,26 @@ class TestCheckout(HttpCase, TourCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Complete your booking", response.text)
 
+    def test_the_checkout_page_opens_for_a_provider_that_can_save_a_card(self):
+        """`payment.form` indexes `show_tokenize_input_mapping` by provider id
+        rather than looking the id up with a default, so a mapping that is
+        missing an entry is a 500 on the payment step — and only for operators
+        whose provider happens to support tokenization, which is most of the
+        real ones.
+        """
+        # Published, because a provider a public visitor cannot see is a
+        # provider `_get_compatible_providers` filters out — and a checkout with
+        # no providers at all renders the buttons that were missing here.
+        self.provider.is_published = True
+        self.provider.allow_tokenization = True
+        self.provider.payment_method_ids.support_tokenization = True
+        booking = self._draft(pax=2)
+
+        response = self.url_open(booking._checkout_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Complete your booking", response.text)
+
     def test_the_checkout_page_refuses_a_wrong_token(self):
         booking = self._draft(pax=2)
 

@@ -115,16 +115,22 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
         euro one is a provider that may not accept euros at all.
         """
         amount, currency = booking_sudo.payment_amount()
+        # The report is filled in by the two calls below and read by
+        # `payment.form` to tell a logged-in administrator *why* a provider they
+        # expected to see is missing. A guest never sees it.
+        availability_report = {}
         providers_sudo = request.env["payment.provider"].sudo()._get_compatible_providers(
             booking_sudo.company_id.id,
             booking_sudo.partner_id.id,
             amount,
             currency_id=currency.id,
+            report=availability_report,
         )
         payment_methods_sudo = request.env["payment.method"].sudo()._get_compatible_payment_methods(
             providers_sudo.ids,
             booking_sudo.partner_id.id,
             currency_id=currency.id,
+            report=availability_report,
         )
         return {
             "amount": amount,
@@ -133,11 +139,16 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
             "providers_sudo": providers_sudo,
             "payment_methods_sudo": payment_methods_sudo,
             "tokens_sudo": request.env["payment.token"].sudo(),
-            "availability_report": {},
+            "availability_report": availability_report,
             "transaction_route": "/tour/booking/%s/transaction" % booking_sudo.id,
             "landing_route": booking_sudo._checkout_url(),
             "access_token": booking_sudo.access_token,
-            "show_tokenize_input_mapping": {},
+            # One entry per compatible provider, keyed by id: the template
+            # indexes this mapping directly, so a provider missing from it is a
+            # KeyError rather than a hidden checkbox.
+            "show_tokenize_input_mapping": self._compute_show_tokenize_input_mapping(
+                providers_sudo
+            ),
         }
 
     @http.route(
