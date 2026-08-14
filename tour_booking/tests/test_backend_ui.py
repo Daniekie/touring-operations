@@ -80,15 +80,36 @@ class TestBackendUI(HttpCase):
         )
 
     def test_creating_an_experience_opens_a_usable_form(self):
+        """A new experience is one page, not a stub you save and come back to.
+
+        The form used to hide everything behind `invisible="not id"`, so the
+        assertions below are the ones that would have caught that: the whole
+        thing is on screen before the record exists, in two rows of tabs, with a
+        button that says what finishing looks like.
+        """
         self.browser_js(
             "/odoo/action-tour_booking.tour_tour_new_action",
             """
             if (!document.querySelector(".o_form_view")) {
                 throw new Error("New Experience did not open a form.");
             }
+            if (!document.querySelector('button[name="action_confirm"]')) {
+                throw new Error("The new form has no Confirm button.");
+            }
+            const rows = document.querySelectorAll(".o_form_sheet .o_notebook");
+            if (rows.length !== 2) {
+                throw new Error(`Expected two rows of tabs, drew ${rows.length}.`);
+            }
+            const tabs = [...document.querySelectorAll(".o_notebook .nav-link")]
+                .map((el) => el.textContent.trim());
+            for (const tab of ["Availability", "Images"]) {
+                if (!tabs.includes(tab)) {
+                    throw new Error(`No "${tab}" tab on an unsaved experience: ${tabs}`);
+                }
+            }
             console.log('test successful');
             """,
-            ready="!!document.querySelector('.o_form_view')",
+            ready="!!document.querySelector('.o_form_view .o_notebook')",
             login="admin",
             timeout=90,
         )

@@ -13,3 +13,4 @@ from . import tour_booking
 from . import tour_booking_extra
 from . import tour_booking_answer
 from . import payment_transaction
+from . import tour_demo

@@ -1,4 +1,5 @@
 from dateutil.relativedelta import relativedelta
+from markupsafe import Markup
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
@@ -180,6 +181,30 @@ class TourBooking(models.Model):
         self.ensure_one()
         return "/tour/booking/%s?access_token=%s" % (
             self.id, self._portal_ensure_token()
+        )
+
+    @api.model
+    def get_empty_list_help(self, help_message):
+        """The first screen of a fresh database, which is otherwise a dead end.
+
+        Bookings is the landing screen, and on day one it is empty for a reason
+        nobody can act on from here: there is nothing on sale yet. "No bookings
+        yet" is true and useless. When the catalogue is empty, say where to go
+        instead — and only then, because once an experience exists the ordinary
+        message is the right one again.
+        """
+        if self.env["tour.tour"].search_count([], limit=1):
+            return super().get_empty_list_help(help_message)
+        return Markup(
+            '<p class="o_view_nocontent_smiling_face">%s</p><p>%s</p>'
+        ) % (
+            _("Nothing is on sale yet"),
+            Markup(_(
+                "In the top menu go to "
+                "<b>Experiences → Create new Experience</b> to get started. "
+                "Once an experience has availability, its trips appear in the "
+                "Calendar and guests can book a seat on one."
+            )),
         )
 
     # --- Constraints -------------------------------------------------------

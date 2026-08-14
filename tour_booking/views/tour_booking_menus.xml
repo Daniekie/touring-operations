@@ -4,10 +4,17 @@
     <!--
         Named after the job, not the table underneath it.
 
-          Bookings     — the daily work: take one, find one, see the week,
-                         print the list you take to the dock.
+          Tours        — the daily work: what is booked, take a booking, print
+                         the list you take to the dock.
+          Calendar     — the week at a glance. Top level because it is opened
+                         more than anything else here.
           Experiences  — what is on sale.
-          Settings     — everything configured once and rarely touched.
+          Settings     — configured once and rarely touched.
+
+        There is deliberately no shortcut to Odoo's General Settings: it is one
+        click from anywhere already, and a menu entry that leaves the app is a
+        trapdoor rather than a feature. The tour timezone lives there, under
+        Settings -> General Settings -> Tours.
     -->
 
     <menuitem id="menu_tour_booking_root" name="Tours"
@@ -15,40 +22,42 @@
               sequence="45"
               groups="tour_booking.group_tour_user"/>
 
-    <!-- 1. Bookings -->
+    <!-- 1. Tours -->
 
-    <menuitem id="menu_tour_bookings" name="Bookings"
+    <menuitem id="menu_tour_bookings" name="Tours"
               parent="menu_tour_booking_root"
               sequence="10"/>
 
-    <menuitem id="menu_tour_booking_new" name="Place a Booking"
-              parent="menu_tour_bookings"
-              action="tour_booking_new_action"
-              sequence="10"/>
-
-    <menuitem id="menu_tour_booking_all" name="All Bookings"
+    <menuitem id="menu_tour_booking_all" name="Overview"
               parent="menu_tour_bookings"
               action="tour_booking_action"
+              sequence="10"/>
+
+    <menuitem id="menu_tour_booking_new" name="Create booking"
+              parent="menu_tour_bookings"
+              action="tour_booking_new_action"
               sequence="20"/>
 
-    <menuitem id="menu_tour_calendar" name="Calendar"
-              parent="menu_tour_bookings"
-              action="action_booking_calendar"
-              sequence="30"/>
-
-    <menuitem id="menu_tour_passengers" name="Passenger List"
+    <menuitem id="menu_tour_passengers" name="Passenger list"
               parent="menu_tour_bookings"
               action="tour_passenger_action"
-              sequence="40"/>
+              sequence="30"/>
 
-    <!-- 2. Experiences -->
+    <!-- 2. Calendar -->
+
+    <menuitem id="menu_tour_calendar" name="Calendar"
+              parent="menu_tour_booking_root"
+              action="action_booking_calendar"
+              sequence="20"/>
+
+    <!-- 3. Experiences -->
 
     <menuitem id="menu_tour_experiences" name="Experiences"
               parent="menu_tour_booking_root"
-              sequence="20"
+              sequence="30"
               groups="tour_booking.group_tour_manager"/>
 
-    <menuitem id="menu_tour_experience_new" name="New Experience"
+    <menuitem id="menu_tour_experience_new" name="Create new Experience"
               parent="menu_tour_experiences"
               action="tour_tour_new_action"
               sequence="10"/>
@@ -68,17 +77,12 @@
               action="action_generate_departures"
               sequence="40"/>
 
-    <!-- 3. Settings -->
+    <!-- 4. Settings -->
 
     <menuitem id="menu_tour_config" name="Settings"
               parent="menu_tour_booking_root"
               sequence="90"
               groups="tour_booking.group_tour_manager"/>
-
-    <menuitem id="menu_tour_settings" name="General Settings"
-              parent="menu_tour_config"
-              action="base_setup.action_general_configuration"
-              sequence="10"/>
 
     <menuitem id="menu_tour_policies" name="Cancellation Policies"
               parent="menu_tour_config"

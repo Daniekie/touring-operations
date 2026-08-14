@@ -173,6 +173,16 @@ class TourTour(models.Model):
                     tour.name,
                 ))
 
+    def action_confirm(self):
+        """Save, and nothing else.
+
+        There is no state to advance — a tour is either published or it is not,
+        and that is its own toggle. This exists purely so a half-filled form has
+        a button on it that says what pressing it does: Odoo saves a record
+        before running an object button, so the save is the entire effect.
+        """
+        return True
+
     def action_view_departures(self):
         self.ensure_one()
         return {

@@ -24,6 +24,11 @@ class TestCalendarGrid(TourCase):
         # these tests have to start from an empty schedule. Demo data is loaded
         # in the test database and its open-ended rules generate a year ahead,
         # which lands two dozen departures squarely in the week below.
+        #
+        # The demo bookings go first: `tour.booking.departure_id` is
+        # `ondelete="restrict"`, on purpose, so a sold departure cannot be
+        # deleted out from under a guest.
+        cls.env["tour.booking"].search([]).unlink()
         cls.env["tour.departure"].search([]).unlink()
 
     def _grid(self, **kwargs):

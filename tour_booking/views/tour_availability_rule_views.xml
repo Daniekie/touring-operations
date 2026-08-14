@@ -34,7 +34,7 @@
                         </div>
                     </div>
                     <group>
-                        <group string="Tour">
+                        <group string="Tour" name="scope">
                             <field name="tour_id" options="{'no_create': True}"/>
                             <field name="active" widget="boolean_toggle"/>
                         </group>
@@ -78,6 +78,27 @@
                     </group>
                 </sheet>
             </form>
+        </field>
+    </record>
+
+    <!-- The same form, used inside a tour's Availability tab.
+
+         Only the Tour field differs, and it is hidden rather than removed: the
+         start-times domain below it reads `tour_id`, and a field a domain
+         references has to be on the view or the client cannot evaluate it. -->
+    <record id="tour_availability_rule_view_form_embedded" model="ir.ui.view">
+        <field name="name">tour.availability.rule.form.embedded</field>
+        <field name="model">tour.availability.rule</field>
+        <field name="inherit_id" ref="tour_availability_rule_view_form"/>
+        <field name="mode">primary</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <field name="tour_id" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </field>
+            <xpath expr="//group[@name='scope']" position="attributes">
+                <attribute name="string">Rule</attribute>
+            </xpath>
         </field>
     </record>
 

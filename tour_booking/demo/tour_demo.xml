@@ -666,9 +666,59 @@ Instructor</field>
         <field name="image_1920" type="base64" file="tour_booking/static/demo/divers_silhouette.jpg"/>
     </record>
 
+    <!-- ==================== Guests ==================== -->
+    <!-- Phone and email are the two columns the passenger list is read for, so
+         every demo guest has both. -->
+
+    <record id="demo_partner_hartman" model="res.partner">
+        <field name="name">Ilse Hartman</field>
+        <field name="email">ilse.hartman@example.com</field>
+        <field name="phone">+31 6 2244 1907</field>
+        <field name="country_id" ref="base.nl"/>
+    </record>
+
+    <record id="demo_partner_okafor" model="res.partner">
+        <field name="name">Chidi Okafor</field>
+        <field name="email">chidi.okafor@example.com</field>
+        <field name="phone">+44 7700 900318</field>
+        <field name="country_id" ref="base.uk"/>
+    </record>
+
+    <record id="demo_partner_lindqvist" model="res.partner">
+        <field name="name">Maja Lindqvist</field>
+        <field name="email">maja.lindqvist@example.com</field>
+        <field name="phone">+46 70 812 44 61</field>
+        <field name="country_id" ref="base.se"/>
+    </record>
+
+    <record id="demo_partner_moreno" model="res.partner">
+        <field name="name">Valeria Moreno</field>
+        <field name="email">valeria.moreno@example.com</field>
+        <field name="phone">+599 795 4412</field>
+        <field name="country_id" ref="base.bq"/>
+    </record>
+
+    <record id="demo_partner_becker" model="res.partner">
+        <field name="name">Jonas Becker</field>
+        <field name="email">jonas.becker@example.com</field>
+        <field name="phone">+49 151 2299 0034</field>
+        <field name="country_id" ref="base.de"/>
+    </record>
+
+    <record id="demo_partner_tanaka" model="res.partner">
+        <field name="name">Rin Tanaka</field>
+        <field name="email">rin.tanaka@example.com</field>
+        <field name="phone">+81 90 5544 8812</field>
+        <field name="country_id" ref="base.jp"/>
+    </record>
+
     <!-- Materialise the schedule, so a fresh demo database has a calendar with
          something in it rather than one that fills up when the cron first
          runs tomorrow. -->
     <function model="tour.departure" name="_cron_generate_departures"/>
+
+    <!-- Then sell a few seats on it. Has to come after the generator: these
+         bookings attach to departures that did not exist a moment ago. -->
+    <function model="tour.booking" name="_demo_create_bookings"/>
 
 </odoo>

@@ -6,6 +6,7 @@ from . import test_calendar_grid
 from . import test_cancellation
 from . import test_checkout
 from . import test_concurrency
+from . import test_demo
 from . import test_pricing
 from . import test_questions
 from . import test_reaper
