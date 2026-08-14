@@ -16,10 +16,50 @@ from odoo.tools import consteq
 
 from odoo.addons.payment.controllers import portal as payment_portal
 
+# How many unfinished bookings one visitor may be sitting on at a time.
+#
+# A draft holds its seats, and nothing obliges the guest who opened it to ever
+# come back — so without a ceiling one visitor can empty a departure by pressing
+# the button, and keep it empty for as long as they care to keep pressing. Five
+# is well above what a real guest does (they open one, and perhaps one more
+# after changing their mind about the date) and well below what emptying a boat
+# takes.
+MAX_OPEN_DRAFTS = 5
+
+# The bookings this browser has opened, so the count above is over this
+# visitor's own drafts rather than everybody's.
+SESSION_BOOKINGS = "tour_booking_ids"
+
 
 class TourBookingCheckout(payment_portal.PaymentPortal):
 
     # --- Creating the booking ----------------------------------------------
+
+    def _session_bookings(self):
+        return list(request.session.get(SESSION_BOOKINGS) or [])
+
+    def _remember_booking(self, booking):
+        # Bounded, and holding ids rather than a counter: a booking that has
+        # been paid for or cancelled has stopped holding anything, and the ids
+        # are what lets the next check tell the difference.
+        remembered = (self._session_bookings() + [booking.id])[-(MAX_OPEN_DRAFTS * 4):]
+        request.session[SESSION_BOOKINGS] = remembered
+
+    def _open_draft_count(self):
+        """How many unfinished bookings this visitor is already holding. -> int.
+
+        Session-scoped on purpose. Counting per IP would put every guest behind
+        one hotel's wifi on the same allowance, which is a booking engine
+        refusing real bookings — the failure this is meant to prevent, arriving
+        by another door.
+        """
+        remembered = self._session_bookings()
+        if not remembered:
+            return 0
+        return request.env["tour.booking"].sudo().search_count([
+            ("id", "in", remembered),
+            ("state", "=", "draft"),
+        ])
 
     @http.route(["/tour/book"], type="http", auth="public", website=True, methods=["POST"])
     def book(self, departure_id=None, pax=1, **kwargs):
@@ -45,6 +85,17 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
         except (TypeError, ValueError):
             pax = 1
 
+        if self._open_draft_count() >= MAX_OPEN_DRAFTS:
+            return request.render("tour_booking.booking_refused", {
+                "tour": departure.tour_id,
+                "reason": _(
+                    "You already have %(count)s bookings waiting to be paid "
+                    "for. Finish or cancel one of those before starting "
+                    "another.",
+                    count=MAX_OPEN_DRAFTS,
+                ),
+            })
+
         partner = request.env.user.partner_id
         if request.env.user._is_public():
             # A public visitor has no partner of their own yet. One is made at
@@ -64,6 +115,7 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
                 "reason": error.args[0] if error.args else None,
             })
 
+        self._remember_booking(booking)
         return request.redirect(booking._checkout_url())
 
     # --- The checkout page -------------------------------------------------

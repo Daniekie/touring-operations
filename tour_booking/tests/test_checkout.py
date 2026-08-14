@@ -7,6 +7,8 @@ from odoo.tests import tagged
 from odoo.tests.common import HttpCase
 from odoo.tools import mute_logger
 
+from odoo.addons.tour_booking.controllers.checkout import MAX_OPEN_DRAFTS
+
 from .common import TourCase
 
 
@@ -75,6 +77,54 @@ class TestCheckout(HttpCase, TourCase):
             "A draft must hold its seats for the duration of the redirect, or "
             "two guests can pay for the same last place.",
         )
+
+    def _book_now(self, pax=1):
+        """Press Book now the way the widget does."""
+        return self._post(
+            "/tour/book",
+            self.tour.website_url,
+            departure_id=self.departure.id,
+            pax=pax,
+        )
+
+    def test_a_visitor_cannot_hold_a_boat_by_pressing_book_now_over_and_over(self):
+        """Every press takes seats and holds them for half an hour.
+
+        Nothing about a draft requires the guest to come back, so without a
+        limit one visitor — or one crawler with a token — can empty a departure
+        and keep it empty, at no cost and with nothing to undo it but the
+        reaper.
+        """
+        for _ in range(MAX_OPEN_DRAFTS):
+            self.assertEqual(self._book_now().status_code, 200)
+        opened = self.env["tour.booking"].search_count([
+            ("departure_id", "=", self.departure.id), ("state", "=", "draft"),
+        ])
+
+        response = self._book_now()
+
+        self.assertIn("could not be booked", response.text)
+        self.assertEqual(
+            self.env["tour.booking"].search_count([
+                ("departure_id", "=", self.departure.id), ("state", "=", "draft"),
+            ]),
+            opened,
+            "A visitor already sitting on the limit opened another draft.",
+        )
+
+    def test_finishing_a_booking_frees_the_visitor_to_make_another(self):
+        """The limit is on drafts left hanging, not on how much a guest may
+        buy."""
+        for _ in range(MAX_OPEN_DRAFTS):
+            self._book_now()
+        held = self.env["tour.booking"].search([
+            ("departure_id", "=", self.departure.id), ("state", "=", "draft"),
+        ])
+        held[0].action_cancel()
+
+        response = self._book_now()
+
+        self.assertNotIn("could not be booked", response.text)
 
     def test_the_checkout_page_opens_with_a_valid_token(self):
         booking = self._draft(pax=2)
