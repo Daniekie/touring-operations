@@ -85,7 +85,7 @@ class TestWebsite(HttpCase, TourCase):
 
         body = self.url_open(self.tour.website_url).text
 
-        self.assertIn("o_tour_gallery", body)
+        self.assertIn("o_tour_photos", body)
         self.assertEqual(
             body.count("/web/image/tour.tour.image/"), 3,
             "Every gallery image should appear on the page.",

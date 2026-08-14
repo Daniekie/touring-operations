@@ -8,6 +8,7 @@ from . import test_checkout
 from . import test_concurrency
 from . import test_demo
 from . import test_embed
+from . import test_gallery
 from . import test_embed_wizard
 from . import test_snippets
 from . import test_pricing

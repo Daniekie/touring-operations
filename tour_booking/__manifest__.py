@@ -73,6 +73,7 @@ There is deliberately no channel synchronisation with any OTA.
             "tour_booking/static/src/scss/tour_booking.scss",
             "tour_booking/static/src/scss/tour_embed.scss",
             "tour_booking/static/src/js/interactions/tour_calendar.js",
+            "tour_booking/static/src/js/interactions/tour_gallery.js",
             "tour_booking/static/src/js/interactions/tour_snippet.js",
             "tour_booking/static/src/js/interactions/embed_frame.js",
             # `*.edit.js` is deliberately absent: it registers against the

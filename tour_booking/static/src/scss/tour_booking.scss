@@ -14,10 +14,144 @@
     }
 }
 
-.o_tour_hero {
-    height: 22rem;
-    background-size: cover;
-    background-position: center;
+// The photo mosaic: one big picture, four alongside. Grid rather than
+// flexbox because the shape is the point — the large tile has to span both
+// rows, and a flex child cannot.
+.o_tour_photos {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: .5rem;
+    border-radius: .75rem;
+    overflow: hidden;
+
+    .o_tour_photo {
+        position: relative;
+        margin: 0;
+        overflow: hidden;
+        cursor: zoom-in;
+
+        img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .25s ease-out;
+        }
+
+        &:hover img {
+            transform: scale(1.03);
+        }
+    }
+
+    // Two rows tall, first column. Everything else falls into place after it.
+    .o_tour_photo_main {
+        grid-row: span 2;
+        aspect-ratio: 4 / 3;
+    }
+
+    .o_tour_photo:not(.o_tour_photo_main) {
+        aspect-ratio: 3 / 2;
+    }
+
+    .o_tour_photos_all {
+        position: absolute;
+        right: 1rem;
+        bottom: 1rem;
+        border: 1px solid rgba(0, 0, 0, .15);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+    }
+
+    // A phone is one column wide, and a 2fr/1fr/1fr grid squeezed into it
+    // gives five unreadable slivers.
+    @media (max-width: 767.98px) {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto;
+
+        .o_tour_photo_main {
+            grid-column: span 2;
+            grid-row: auto;
+        }
+    }
+}
+
+// A tour with no gallery: the main picture alone, still the same shape.
+.o_tour_photos[data-count="1"] {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+
+    .o_tour_photo_main {
+        grid-row: auto;
+        aspect-ratio: 21 / 9;
+    }
+}
+
+.o_tour_lightbox_open {
+    overflow: hidden;
+}
+
+.o_tour_lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem 1rem;
+    background: rgba(0, 0, 0, .9);
+
+    .o_tour_lightbox_stage {
+        margin: 0;
+        max-width: 100%;
+        max-height: 100%;
+
+        img {
+            max-width: 100%;
+            max-height: 84vh;
+            object-fit: contain;
+            border-radius: .375rem;
+        }
+    }
+
+    button {
+        border: 0;
+        background: transparent;
+        color: #fff;
+        opacity: .75;
+        cursor: pointer;
+        line-height: 1;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    .o_tour_lightbox_prev,
+    .o_tour_lightbox_next {
+        flex: 0 0 auto;
+        font-size: 2.5rem;
+        padding: .5rem 1rem;
+    }
+
+    .o_tour_lightbox_close {
+        position: absolute;
+        top: .5rem;
+        right: 1rem;
+        font-size: 3rem;
+    }
+
+    .o_tour_lightbox_count {
+        position: absolute;
+        bottom: 1rem;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: #fff;
+        opacity: .75;
+        font-size: .875rem;
+    }
 }
 
 // Inclusions and exclusions are written as ordinary bullet lists in the
@@ -51,21 +185,77 @@
 
 // A grid rather than a carousel: every photo is visible at once, it needs no
 // JavaScript, and it degrades to a single column on a phone by itself.
-.o_tour_gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+// The line under the title: duration, meeting point, price. Wraps on a phone
+// instead of squeezing three things onto one line.
+.o_tour_meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: .5rem;
 
-    img {
-        width: 100%;
-        aspect-ratio: 4 / 3;
-        object-fit: cover;
-        border-radius: .375rem;
+    > span {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .35rem .75rem;
+        border-radius: 2rem;
+        background-color: var(--o-gray-100, #f1f3f5);
+        color: var(--o-gray-700, #495057);
+        font-size: .9375rem;
+        white-space: nowrap;
+    }
+
+    .fa {
+        color: var(--o-color-1, #875a7b);
+    }
+
+    // The price is the one item somebody is looking for, so it is the one
+    // that does not look like the others.
+    .o_tour_meta_price {
+        background-color: transparent;
+        padding-left: .25rem;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--o-gray-900, #212529);
+
+        .text-muted {
+            font-size: .875rem;
+            font-weight: 400;
+        }
+    }
+}
+
+// Each block of copy reads as its own thing, with a rule under the heading
+// rather than a heavier font doing all the work.
+.o_tour_section {
+    padding-top: 2rem;
+    margin-bottom: 2rem;
+    border-top: 1px solid var(--o-gray-200, #dee2e6);
+
+    // The first one sits under the description and needs no line above it.
+    &:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+    }
+
+    .o_tour_section_title {
+        margin-bottom: 1rem;
+        font-size: 1.35rem;
+        font-weight: 700;
+
+        &::after {
+            content: "";
+            display: block;
+            width: 2.5rem;
+            height: 3px;
+            margin-top: .5rem;
+            border-radius: 2px;
+            background-color: var(--o-color-1, #875a7b);
+        }
     }
 }
 
 .o_tour_widget {
-    top: 1rem;
 
     .o_tour_grid {
         display: grid;
@@ -105,5 +295,23 @@
             background-color: var(--bs-primary, #714b67);
             color: #fff;
         }
+    }
+}
+
+// The booking card follows the page down, and every Odoo theme puts a header
+// across the top of the viewport. Sticking it to `top: 0` slides the card
+// under that header and cuts the first thing on it clean off. The offset
+// clears the header; the height cap keeps a long card from ending up with its
+// Book now button below the fold on a laptop.
+.o_tour_sticky {
+    position: sticky;
+    top: 6rem;
+    max-height: calc(100vh - 7rem);
+    overflow-y: auto;
+
+    @media (max-width: 991.98px) {
+        position: static;
+        max-height: none;
+        overflow: visible;
     }
 }

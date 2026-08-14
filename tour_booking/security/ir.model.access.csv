@@ -29,4 +29,6 @@ access_tour_booking_answer_user,tour.booking.answer user,model_tour_booking_answ
 access_tour_booking_answer_manager,tour.booking.answer manager,model_tour_booking_answer,tour_booking.group_tour_manager,1,1,1,1
 access_tour_embed_manager,tour.embed manager,model_tour_embed,tour_booking.group_tour_manager,1,1,1,1
 access_tour_tour_public,tour.tour public,model_tour_tour,base.group_public,1,0,0,0
+access_tour_tour_image_public,tour.tour.image public,model_tour_tour_image,base.group_public,1,0,0,0
+access_tour_tour_image_portal,tour.tour.image portal,model_tour_tour_image,base.group_portal,1,0,0,0
 access_tour_tour_portal,tour.tour portal,model_tour_tour,base.group_portal,1,0,0,0

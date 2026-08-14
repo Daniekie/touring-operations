@@ -100,6 +100,56 @@
         </div>
     </template>
 
+    <!-- ==================== The photos ==================== -->
+
+    <template id="experience_gallery" name="Experience Gallery">
+        <!--
+            One big picture and a block of small ones, which is how every site
+            that sells a day out shows them. A full-bleed hero followed by a
+            row of thumbnails says "here is a photograph"; this says "here is
+            what the day looks like", and it puts four more of them above the
+            fold without pushing the price off it.
+
+            Every tile is the same markup with the same data attributes,
+            because they all feed one lightbox and it should not care which
+            one was clicked.
+        -->
+        <t t-set="photos" t-value="tour.image_ids"/>
+        <t t-if="tour.image_1920 or photos">
+            <div class="o_tour_photos mb-4"
+                 t-att-data-count="len(photos) + (1 if tour.image_1920 else 0)">
+                <figure t-if="tour.image_1920" class="o_tour_photo o_tour_photo_main"
+                        data-index="0">
+                    <img t-attf-src="/web/image/tour.tour/#{tour.id}/image_1920"
+                         t-att-alt="tour.name"/>
+                </figure>
+                <!-- Four alongside. The rest live in the lightbox, reached by
+                     the button below, rather than growing the mosaic until it
+                     is the whole page. -->
+                <figure t-foreach="photos[:4]" t-as="image"
+                        class="o_tour_photo"
+                        t-att-data-index="image_index + 1">
+                    <img t-attf-src="/web/image/tour.tour.image/#{image.id}/image_1920"
+                         t-att-alt="image.name or tour.name"
+                         loading="lazy"/>
+                </figure>
+                <!-- Hidden, so the lightbox can page through everything
+                     without a second request. -->
+                <figure t-foreach="photos[4:]" t-as="image"
+                        class="o_tour_photo d-none"
+                        t-att-data-index="image_index + 5">
+                    <img t-attf-src="/web/image/tour.tour.image/#{image.id}/image_1920"
+                         t-att-alt="image.name or tour.name"
+                         loading="lazy"/>
+                </figure>
+                <button t-if="len(photos) > 4" type="button"
+                        class="btn btn-light o_tour_photos_all">
+                    <i class="fa fa-th me-1"/>Show all photos
+                </button>
+            </div>
+        </t>
+    </template>
+
     <!-- ==================== One experience, compact ==================== -->
 
     <template id="experience_detail" name="Experience Detail">
@@ -112,10 +162,7 @@
              the first one within a season. -->
         <div class="row g-4 o_tour_experience_detail">
             <div class="col-12 col-lg-7">
-                <img t-if="tour.image_1920"
-                     t-attf-src="/web/image/tour.tour/#{tour.id}/image_1920"
-                     class="img-fluid rounded mb-3"
-                     t-att-alt="tour.name"/>
+                <t t-call="tour_booking.experience_gallery"/>
                 <h2 t-field="tour.name"/>
                 <div class="text-muted mb-3">
                     <i class="fa fa-clock-o me-1"/>
@@ -155,14 +202,10 @@
              t-att-data-month="month.strftime('%Y-%m')"
              t-att-data-preselect-departure="preselect_departure or None"
              t-att-data-preselect-pax="preselect_pax or None"
-             t-att-data-autobook="'1' if autobook else None">
+             t-att-data-autobook="'1' if autobook else None"
+             t-att-data-price="tour.price_per_person"
+             t-att-data-currency="tour.currency_id.id">
             <div class="card-body">
-                <div class="h4">
-                    <span t-field="tour.price_per_person"
-                          t-options="{'widget': 'monetary', 'display_currency': tour.currency_id}"/>
-                    <small class="text-muted"> per person</small>
-                </div>
-
                 <form action="/tour/book" method="post" class="o_tour_book_form"
                       t-att-target="link_target if link_target != '_self' else None">
                     <input type="hidden" name="csrf_token"
@@ -198,6 +241,21 @@
                                class="form-control o_tour_pax"
                                value="1" min="1"/>
                         <small class="text-muted o_tour_seats_left"/>
+                    </div>
+
+                    <!-- The number a guest is actually deciding about.
+                         Hidden until a departure is chosen, because before
+                         that there is no party size to multiply and a total
+                         of one person's fare is a wrong answer confidently
+                         displayed. Filled in by the calendar interaction. -->
+                    <div class="o_tour_total d-none mb-3">
+                        <div class="d-flex justify-content-between align-items-baseline">
+                            <span class="text-muted o_tour_total_label"/>
+                            <strong class="h5 mb-0 o_tour_total_value"/>
+                        </div>
+                        <small t-if="tour.tax_ids or tour.extra_ids" class="text-muted">
+                            Extras and taxes are added at checkout.
+                        </small>
                     </div>
 
                     <button type="submit"

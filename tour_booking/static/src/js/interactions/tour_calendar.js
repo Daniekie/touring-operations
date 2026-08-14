@@ -1,6 +1,8 @@
 import { Interaction } from "@web/public/interaction";
 import { registry } from "@web/core/registry";
 import { rpc } from "@web/core/network/rpc";
+import { formatCurrency } from "@web/core/currency";
+import { _t } from "@web/core/l10n/translation";
 
 /**
  * The booking widget: a month of dates, a start time, a party size.
@@ -36,6 +38,8 @@ export class TourCalendar extends Interaction {
         this.selected = null;
         this.days = {};
         this.hasSpecificTime = true;
+        this.price = parseFloat(this.el.dataset.price) || 0;
+        this.currencyId = parseInt(this.el.dataset.currency, 10);
     }
 
     async willStart() {
@@ -120,6 +124,7 @@ export class TourCalendar extends Interaction {
         this.el.querySelector(".o_tour_book_button").disabled = true;
         this.el.querySelector(".o_tour_seats_left").textContent = "";
         this.el.querySelector(".o_tour_hint").textContent = "Pick a date to continue.";
+        this.el.querySelector(".o_tour_total").classList.add("d-none");
     }
 
     // --- Picking ------------------------------------------------------------
@@ -200,6 +205,7 @@ export class TourCalendar extends Interaction {
         }
         this.el.querySelector(".o_tour_seats_left").textContent =
             `${departure.seats_available} seat(s) left`;
+        this.renderTotal();
     }
 
     onChangePax(ev) {
@@ -210,6 +216,31 @@ export class TourCalendar extends Interaction {
         const max = Math.min(this.selected.max_pax, this.selected.seats_available);
         let value = parseInt(input.value, 10) || this.selected.min_pax;
         input.value = Math.max(this.selected.min_pax, Math.min(value, max));
+        this.renderTotal();
+    }
+
+    /**
+     * What the party will pay for the seats.
+     *
+     * Deliberately the seats only. Extras and taxes are chosen at the next
+     * step and priced by the server, and a "total" here that quietly excluded
+     * them without saying so would be the number a guest remembers and then
+     * argues about.
+     */
+    renderTotal() {
+        const total = this.el.querySelector(".o_tour_total");
+        if (!this.selected || !this.price) {
+            total.classList.add("d-none");
+            return;
+        }
+        const pax = parseInt(this.el.querySelector(".o_tour_pax").value, 10) || 1;
+        this.el.querySelector(".o_tour_total_label").textContent = _t(
+            "%(pax)s x %(price)s",
+            { pax, price: formatCurrency(this.price, this.currencyId) }
+        );
+        this.el.querySelector(".o_tour_total_value").textContent =
+            formatCurrency(this.price * pax, this.currencyId);
+        total.classList.remove("d-none");
     }
 
     // --- Arriving with a choice already made --------------------------------

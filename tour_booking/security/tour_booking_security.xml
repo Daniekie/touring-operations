@@ -25,5 +25,25 @@
             <field name="perm_unlink" eval="False"/>
         </record>
 
+        <!--
+            And its photographs, for a less obvious reason. The templates render
+            the gallery through sudo(), so the markup is always right — but each
+            `<img>` points at `/web/image/tour.tour.image/<id>/image_1920`, and
+            that route does its own access check as the visitor. Without this
+            every gallery photo is a broken-image placeholder on a page that
+            otherwise looks perfect, which is why it went unnoticed: the tests
+            asserted the tags were there, and they always were.
+        -->
+        <record id="tour_tour_image_rule_public" model="ir.rule">
+            <field name="name">Only published tours' photos are public</field>
+            <field name="model_id" ref="model_tour_tour_image"/>
+            <field name="domain_force">[('tour_id.is_published', '=', True)]</field>
+            <field name="groups" eval="[(4, ref('base.group_public')), (4, ref('base.group_portal'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
     </data>
 </odoo>

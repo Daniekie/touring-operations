@@ -19,40 +19,38 @@
     <template id="tour_detail" name="Tour">
         <t t-call="website.layout">
             <div id="wrap">
-                <!-- Section order: image, info, booking widget. -->
-                <div t-if="tour.image_1920" class="o_tour_hero"
-                     t-attf-style="background-image: url('/web/image/tour.tour/#{tour.id}/image_1920')"/>
+                <!-- The photos lead, full width, and everything else follows.
+                     They used to be a background-image hero with a second wall
+                     of thumbnails buried under the description — two bites at
+                     the same job, neither of which could be enlarged. -->
+                <div class="container mt-4">
+                    <h1 t-field="tour.name" class="mb-2"/>
+                    <!-- Duration, where from, what it costs — the three
+                         things somebody scans for before reading a word. The
+                         price used to sit at the top of the booking card,
+                         which scrolled away under the header. -->
+                    <div class="o_tour_meta mb-3">
+                        <span><i class="fa fa-clock-o me-1"/><span t-field="tour.duration_display"/></span>
+                        <span t-if="tour.location_id">
+                            <i class="fa fa-map-marker me-1"/>
+                            <span t-field="tour.location_id.name"/>
+                        </span>
+                        <span class="o_tour_meta_price">
+                            <span t-field="tour.price_per_person"
+                                  t-options="{'widget': 'monetary', 'display_currency': tour.currency_id}"/>
+                            <span class="text-muted"> per person</span>
+                        </span>
+                    </div>
+                    <t t-call="tour_booking.experience_gallery"/>
+                </div>
 
                 <div class="container my-5">
                     <div class="row">
                         <div class="col-lg-7">
-                            <h1 t-field="tour.name"/>
-                            <div class="text-muted mb-4">
-                                <i class="fa fa-clock-o me-1"/>
-                                <span t-field="tour.duration_display"/>
-                                <t t-if="tour.location_id">
-                                    <span class="mx-2">·</span>
-                                    <i class="fa fa-map-marker me-1"/>
-                                    <span t-field="tour.location_id.name"/>
-                                </t>
-                            </div>
-
                             <div t-field="tour.description" class="mb-4"/>
 
-                            <!-- The gallery sits with the information rather
-                                 than above it: the hero has already done the
-                                 job of selling, and a second wall of images
-                                 before a word of copy just pushes the booking
-                                 widget off the screen. -->
-                            <div t-if="tour.image_ids" class="o_tour_gallery mb-4">
-                                <img t-foreach="tour.image_ids" t-as="image"
-                                     t-attf-src="/web/image/tour.tour.image/#{image.id}/image_1920"
-                                     t-att-alt="image.name or tour.name"
-                                     loading="lazy"/>
-                            </div>
-
-                            <div t-if="tour.itinerary_step_ids" class="mb-4">
-                                <h3>Itinerary</h3>
+                            <section t-if="tour.itinerary_step_ids" class="o_tour_section">
+                                <h3 class="o_tour_section_title">Itinerary</h3>
                                 <ol class="o_tour_itinerary">
                                     <li t-foreach="tour.itinerary_step_ids" t-as="step">
                                         <strong t-field="step.name"/>
@@ -62,31 +60,32 @@
                                         <div t-field="step.description"/>
                                     </li>
                                 </ol>
-                            </div>
+                            </section>
 
-                            <div class="row">
-                                <div t-if="tour.inclusions" class="col-md-6 mb-4">
-                                    <h3>What's included</h3>
-                                    <div t-field="tour.inclusions" class="o_tour_included"/>
+                            <section t-if="tour.inclusions or tour.exclusions" class="o_tour_section">
+                                <h3 class="o_tour_section_title">What's included</h3>
+                                <div class="row">
+                                    <div t-if="tour.inclusions" class="col-md-6">
+                                        <div t-field="tour.inclusions" class="o_tour_included"/>
+                                    </div>
+                                    <div t-if="tour.exclusions" class="col-md-6">
+                                        <div t-field="tour.exclusions" class="o_tour_excluded"/>
+                                    </div>
                                 </div>
-                                <div t-if="tour.exclusions" class="col-md-6 mb-4">
-                                    <h3>Not included</h3>
-                                    <div t-field="tour.exclusions" class="o_tour_excluded"/>
-                                </div>
-                            </div>
+                            </section>
 
-                            <div t-if="tour.know_before_you_go" class="mb-4">
-                                <h3>Know before you go</h3>
+                            <section t-if="tour.know_before_you_go" class="o_tour_section">
+                                <h3 class="o_tour_section_title">Know before you go</h3>
                                 <div t-field="tour.know_before_you_go"/>
-                            </div>
+                            </section>
 
-                            <div t-if="tour.what_to_bring" class="mb-4">
-                                <h3>What to bring</h3>
+                            <section t-if="tour.what_to_bring" class="o_tour_section">
+                                <h3 class="o_tour_section_title">What to bring</h3>
                                 <div t-field="tour.what_to_bring"/>
-                            </div>
+                            </section>
 
-                            <div t-if="tour.location_id" class="mb-4">
-                                <h3>Meeting point</h3>
+                            <section t-if="tour.location_id" class="o_tour_section">
+                                <h3 class="o_tour_section_title">Meeting point</h3>
                                 <address>
                                     <strong t-field="tour.location_id.name"/><br/>
                                     <span t-field="tour.location_id.street"/><br/>
@@ -94,10 +93,10 @@
                                 </address>
                                 <div t-field="tour.location_id.how_to_get_there"/>
                                 <p t-if="tour.meeting_point_note" t-field="tour.meeting_point_note"/>
-                            </div>
+                            </section>
 
-                            <div t-if="tour.cancellation_policy_id" class="mb-4">
-                                <h3>Cancellation policy</h3>
+                            <section t-if="tour.cancellation_policy_id" class="o_tour_section">
+                                <h3 class="o_tour_section_title">Cancellation policy</h3>
                                 <div t-field="tour.cancellation_policy_id.description"/>
                                 <ul class="list-unstyled">
                                     <li t-foreach="tour.cancellation_policy_id.rule_ids" t-as="rule">
@@ -105,12 +104,12 @@
                                         departure for a <t t-esc="int(rule.refund_percent)"/>% refund.
                                     </li>
                                 </ul>
-                            </div>
+                            </section>
                         </div>
 
                         <!-- ===== The booking widget ===== -->
                         <div class="col-lg-5">
-                            <div class="sticky-lg-top">
+                            <div class="o_tour_sticky">
                                 <t t-call="tour_booking.booking_widget"/>
                             </div>
                         </div>
