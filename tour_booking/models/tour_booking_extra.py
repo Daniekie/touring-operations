@@ -44,6 +44,22 @@ class TourBookingExtra(models.Model):
             vals.setdefault("is_taxable", extra.is_taxable)
         return super().create(vals_list)
 
+    @api.constrains("extra_id", "booking_id")
+    def _check_company(self):
+        """The tour's own constraint is not the only way in here.
+
+        A line can be made directly — the checkout does exactly that — so the
+        currency mismatch has to be refused where the line is written as well
+        as where the extra is offered.
+        """
+        for line in self:
+            if line.extra_id.company_id != line.booking_id.company_id:
+                raise ValidationError(_(
+                    "\"%(extra)s\" belongs to another company than this "
+                    "booking and is priced in another currency.",
+                    extra=line.extra_id.name,
+                ))
+
     @api.constrains("quantity", "extra_id")
     def _check_quantity(self):
         for line in self:

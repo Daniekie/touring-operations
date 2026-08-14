@@ -190,6 +190,29 @@ class TourTour(models.Model):
             if tour.booking_cutoff_hours < 0:
                 raise ValidationError(_("The booking cut-off cannot be negative."))
 
+    @api.constrains("extra_ids", "company_id")
+    def _check_extra_companies(self):
+        """An extra is priced in its own company's currency.
+
+        `tour.booking.extra` reads its currency from the booking, so a 50 EUR
+        extra sold on a USD tour lands on the total as 50 USD — a number
+        invented from a foreign price list, with nothing to show a conversion
+        was skipped. The two have to agree, or the money is wrong and quiet
+        about it.
+        """
+        for tour in self:
+            foreign = tour.extra_ids.filtered(
+                lambda extra: extra.company_id != tour.company_id
+            )
+            if foreign:
+                raise ValidationError(_(
+                    "%(extras)s belong to another company than %(tour)s and "
+                    "are priced in another currency. Make a copy under this "
+                    "company instead.",
+                    extras=", ".join(foreign.mapped("name")),
+                    tour=tour.name,
+                ))
+
     @api.constrains("has_specific_time", "start_time_ids", "is_published")
     def _check_start_times(self):
         """Checked at publication, not at every save.

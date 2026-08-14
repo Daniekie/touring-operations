@@ -7,7 +7,7 @@ instance. That is only invisible while an instance has one company on it, which
 is the state every instance is in until the day it is not.
 """
 
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, ValidationError
 
 from .common import TourCase
 
@@ -80,6 +80,39 @@ class TestMultiCompany(TourCase):
 
         with self.assertRaises(AccessError):
             self._as_other("tour.booking").browse(booking.id).read(["partner_id"])
+
+    def test_an_extra_from_another_company_cannot_be_sold_on_this_tour(self):
+        """Their prices are in their currency.
+
+        `tour.booking.extra` takes its currency from the booking, so a 50 EUR
+        extra bought on a USD tour is added to the total as 50 USD — money
+        invented out of a foreign price list, with nothing anywhere saying a
+        conversion was skipped.
+        """
+        theirs = self.env["tour.extra"].create({
+            "name": "Their Wetsuit",
+            "price": 50.0,
+            "company_id": self.other_company.id,
+        })
+
+        with self.assertRaises(ValidationError, msg="A foreign price list was sold from."):
+            self.tour.extra_ids = [(4, theirs.id)]
+
+    def test_an_extra_from_another_company_cannot_be_put_on_a_booking(self):
+        """The tour is not the only way in: the line can be made directly."""
+        theirs = self.env["tour.extra"].create({
+            "name": "Their Wetsuit",
+            "price": 50.0,
+            "company_id": self.other_company.id,
+        })
+        booking = self._booking(pax=1)
+
+        with self.assertRaises(ValidationError):
+            self.env["tour.booking.extra"].create({
+                "booking_id": booking.id,
+                "extra_id": theirs.id,
+                "quantity": 1,
+            })
 
     def test_the_records_that_belong_to_nobody_stay_shared(self):
         """Locations and cancellation policies carry no company at all.
