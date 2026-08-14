@@ -37,6 +37,13 @@ class TourTour(models.Model):
     )
     currency_id = fields.Many2one(related="company_id.currency_id")
 
+    # `sanitize=False` on this and the four prose fields below is deliberate and
+    # worth knowing about: whoever can edit an experience can put arbitrary
+    # markup — including a <script> tag — on a public page. Only Tour Managers
+    # can, and the fields exist to hold an operator's own embedded map or video,
+    # which sanitizing would strip. It is an accepted risk rather than an
+    # oversight, and the trade is: turning sanitizing on removes the injection
+    # route and takes the embeds with it.
     description = fields.Html(translate=True, sanitize=False)
     image_1920 = fields.Image(max_width=1920, max_height=1920)
     image_ids = fields.One2many("tour.tour.image", "tour_id")

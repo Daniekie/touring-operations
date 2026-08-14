@@ -288,6 +288,13 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
                 quantity = int(post.get("extra_%s" % extra.id) or 0)
             except ValueError:
                 quantity = 0
+            if extra.max_quantity:
+                # Clamped rather than refused. The number box has no ceiling on
+                # it, and a guest who types 99 was reaching for "as many as I
+                # can have" — answering that with the maximum is more useful
+                # than an exception, which arrived as a failed RPC and left the
+                # summary quietly stale while the box still read 99.
+                quantity = min(quantity, extra.max_quantity)
             if quantity > 0:
                 request.env["tour.booking.extra"].sudo().create({
                     "booking_id": booking_sudo.id,

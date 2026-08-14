@@ -65,7 +65,11 @@
                                              failed payment, and a box that forgot
                                              the wetsuit would disagree with the
                                              total next to it. -->
+                                        <!-- `max` when the extra caps itself, so
+                                             the box refuses what the server
+                                             would only clamp anyway. -->
                                         <input type="number" min="0"
+                                               t-att-max="extra.max_quantity or None"
                                                t-attf-name="extra_#{extra.id}"
                                                t-att-value="booking._extra_quantity(extra)"
                                                class="form-control o_tour_extra_qty"
@@ -129,6 +133,16 @@
                         <div class="col-lg-5">
                             <div class="o_tour_summary">
                                 <t t-call="tour_booking.booking_summary"/>
+                            </div>
+
+                            <!-- Shown only when a repricing call fails. The
+                                 total above is then older than the boxes on the
+                                 left, and a stale total that looks authoritative
+                                 is the number a guest remembers and argues
+                                 about later. -->
+                            <div class="alert alert-warning mt-2 d-none o_tour_summary_stale">
+                                We could not update your total just now. Press
+                                <b>Save details</b> to refresh it before paying.
                             </div>
 
                             <div class="card mt-3">

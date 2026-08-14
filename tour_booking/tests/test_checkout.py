@@ -404,6 +404,35 @@ class TestCheckout(HttpCase, TourCase):
 
         self.assertEqual(booking.extra_line_ids.quantity, 2)
 
+    def test_asking_for_more_of_an_extra_than_allowed_gets_the_maximum(self):
+        """The box is a number input with no ceiling on it.
+
+        Typing 99 raised the line's own validation, which came back as an RPC
+        error: the summary silently stopped updating while the box still showed
+        99, so the guest was reading a total for a booking that had not been
+        saved. The server knows the maximum, so it can hand back the answer
+        rather than an exception.
+        """
+        self.wetsuit.max_quantity = 2
+        booking = self._draft(pax=2)
+
+        result = self._reprice(booking, **{"extra_%s" % self.wetsuit.id: 99})
+        booking.invalidate_recordset()
+
+        self.assertEqual(booking.extra_line_ids.quantity, 2)
+        # 2 x 50 for the dive, plus 2 wetsuits at 10 for each of 2 people.
+        self.assertEqual(booking.amount_total, 140.0)
+        self.assertIn("html", result)
+
+    def test_a_negative_quantity_is_not_a_discount(self):
+        booking = self._draft(pax=2)
+
+        self._reprice(booking, **{"extra_%s" % self.wetsuit.id: -3})
+        booking.invalidate_recordset()
+
+        self.assertFalse(booking.extra_line_ids)
+        self.assertEqual(booking.amount_total, 100.0)
+
     def test_removing_an_extra_takes_it_back_out_of_the_total(self):
         booking = self._draft(pax=2)
         self._reprice(booking, **{"extra_%s" % self.wetsuit.id: 1})
