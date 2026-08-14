@@ -1,8 +1,13 @@
 """The demo database, and the message a fresh one shows.
 
 Demo data is not decoration here: it is the only thing standing between a new
-install and a screen full of nothing, and it is loaded by the test run itself
-(`--with-demo`), so it may as well be asserted rather than assumed.
+install and a screen full of nothing, so it is asserted rather than assumed.
+
+But it is optional, and half the databases this module is installed into will
+not have it — an Odoo.sh development build is made from a copy of production,
+where demo data has never existed. Tests that reach for a demo record therefore
+have to skip rather than fail, or the build breaks for a reason that has nothing
+to do with the change being built.
 """
 
 from .common import TourCase
@@ -10,7 +15,21 @@ from .common import TourCase
 
 class TestDemoData(TourCase):
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # The module's own flag, not a guess from whether some record happens to
+        # exist: an operator who deleted one demo tour has still got demo data.
+        cls.has_demo = cls.env["ir.module.module"].search(
+            [("name", "=", "tour_booking")], limit=1
+        ).demo
+
+    def _require_demo(self):
+        if not self.has_demo:
+            self.skipTest("This database was built without demo data.")
+
     def _demo(self, xmlid):
+        self._require_demo()
         return self.env.ref("tour_booking.%s" % xmlid)
 
     def test_the_demo_database_ships_with_confirmed_bookings(self):
@@ -44,7 +63,12 @@ class TestDemoData(TourCase):
         self.assertTrue(booking.cancelled_on)
 
     def test_seeding_twice_does_not_double_the_demo_bookings(self):
-        """`<function>` in a demo file fires again on every module upgrade."""
+        """`<function>` in a demo file fires again on every module upgrade.
+
+        Needs demo data to mean anything: without it the seeder finds no tours,
+        creates nothing, and the assertion below would pass while proving it.
+        """
+        self._require_demo()
         before = self.env["tour.booking"].search_count([])
 
         self.env["tour.booking"]._demo_create_bookings()
