@@ -148,7 +148,7 @@ Instructor</field>
     <!-- ==================== Tours ==================== -->
 
     <record id="demo_tour_sunset" model="tour.tour">
-        <field name="name">Lobster Sunset Tour</field>
+        <field name="name">Sunset Tour</field>
         <field name="sequence">10</field>
         <field name="is_published" eval="True"/>
         <field name="duration_hours">2.0</field>
@@ -224,7 +224,7 @@ Instructor</field>
     </record>
 
     <record id="demo_tour_scuba" model="tour.tour">
-        <field name="name">Lobster Scuba Trip</field>
+        <field name="name">Scuba Trip</field>
         <field name="sequence">20</field>
         <field name="is_published" eval="True"/>
         <field name="duration_hours">4.0</field>
@@ -313,7 +313,7 @@ Instructor</field>
     </record>
 
     <record id="demo_tour_sailing" model="tour.tour">
-        <field name="name">Lobster Sailing</field>
+        <field name="name">Sailing</field>
         <field name="sequence">30</field>
         <field name="is_published" eval="True"/>
         <field name="duration_hours">3.5</field>
@@ -387,7 +387,7 @@ Instructor</field>
     </record>
 
     <record id="demo_tour_klein" model="tour.tour">
-        <field name="name">Lobster Klein Bonaire Trip</field>
+        <field name="name">Klein Bonaire Trip</field>
         <field name="sequence">40</field>
         <field name="is_published" eval="True"/>
         <field name="duration_hours">5.0</field>

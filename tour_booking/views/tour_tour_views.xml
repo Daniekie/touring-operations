@@ -117,7 +117,7 @@
                     <field name="image_1920" widget="image" class="oe_avatar"/>
                     <div class="oe_title">
                         <label for="name"/>
-                        <h1><field name="name" placeholder="Lobster Sunset Tour"/></h1>
+                        <h1><field name="name" placeholder="Sunset Tour"/></h1>
                     </div>
 
                     <group>
@@ -133,15 +133,6 @@
                             <field name="booking_cutoff_hours"/>
                             <field name="is_published" widget="boolean_toggle"/>
                         </group>
-                    </group>
-
-                    <group string="Optional Settings" name="optional_settings">
-                        <field name="cancellation_policy_id"
-                               options="{'no_create_edit': True}"/>
-                        <field name="meeting_point_note"
-                               placeholder="Ask for Marco at the counter"/>
-                        <field name="company_id" groups="base.group_multi_company"/>
-                        <field name="active" widget="boolean_toggle"/>
                     </group>
 
                     <separator string="Required"/>
@@ -181,6 +172,24 @@
 
                     <separator string="Optional"/>
                     <notebook name="optional">
+                        <!-- These used to be a group of their own above the
+                             tabs, which put a heading called "Optional
+                             Settings" on top of the section called "Required".
+                             They are optional, so they live under Optional. -->
+                        <page string="Settings" name="optional_settings">
+                            <group>
+                                <group>
+                                    <field name="cancellation_policy_id"
+                                           options="{'no_create_edit': True}"/>
+                                    <field name="meeting_point_note"
+                                           placeholder="Ask for Marco at the counter"/>
+                                </group>
+                                <group>
+                                    <field name="company_id" groups="base.group_multi_company"/>
+                                    <field name="active" widget="boolean_toggle"/>
+                                </group>
+                            </group>
+                        </page>
                         <page string="Itinerary" name="itinerary">
                             <field name="itinerary_step_ids">
                                 <list editable="bottom">

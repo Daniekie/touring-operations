@@ -100,11 +100,20 @@ class TestBackendUI(HttpCase):
             if (rows.length !== 2) {
                 throw new Error(`Expected two rows of tabs, drew ${rows.length}.`);
             }
-            const tabs = [...document.querySelectorAll(".o_notebook .nav-link")]
-                .map((el) => el.textContent.trim());
-            for (const tab of ["Availability", "Images"]) {
-                if (!tabs.includes(tab)) {
-                    throw new Error(`No "${tab}" tab on an unsaved experience: ${tabs}`);
+            // Order matters and is the thing that went wrong once: an
+            // "Optional Settings" group sat above the row headed "Required".
+            // Required is the first row, everything optional is in the second.
+            const labels = (row) =>
+                [...row.querySelectorAll(".nav-link")].map((el) => el.textContent.trim());
+            const [required, optional] = rows;
+            for (const tab of ["Description", "Start Times", "Availability"]) {
+                if (!labels(required).includes(tab)) {
+                    throw new Error(`"${tab}" is not in the first row: ${labels(required)}`);
+                }
+            }
+            for (const tab of ["Settings", "Images"]) {
+                if (!labels(optional).includes(tab)) {
+                    throw new Error(`"${tab}" is not in the second row: ${labels(optional)}`);
                 }
             }
             console.log('test successful');
