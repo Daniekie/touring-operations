@@ -542,8 +542,22 @@ class TourBooking(models.Model):
         # is safe: `_lock_and_check` only credits the ones sitting on the
         # departure being checked, so a booking moving in from elsewhere brings
         # no seats with it.
-        if "pax" in vals or "departure_id" in vals:
-            holding = self.filtered(lambda b: b.state in SEAT_HOLDING_STATES)
+        # A booking coming back from `cancelled` holds nothing, so it is asking
+        # for its seats again on a departure that may have resold them — the
+        # same question a party growing asks, and it used to walk straight past
+        # the check because only `pax` and `departure_id` were watched.
+        #
+        # Only bookings genuinely re-entering a seat-holding state count as
+        # revived. Confirming a draft is not one: those seats have been held
+        # since the booking was made, and asking for them again would re-apply
+        # the booking cut-off to a guest who has already paid.
+        revived = (
+            self.filtered(lambda b: b.state not in SEAT_HOLDING_STATES)
+            if vals.get("state") in SEAT_HOLDING_STATES
+            else self.browse()
+        )
+        if "pax" in vals or "departure_id" in vals or revived:
+            holding = self.filtered(lambda b: b.state in SEAT_HOLDING_STATES) | revived
             wanted = defaultdict(int)
             for booking in holding:
                 departure_id = vals.get("departure_id", booking.departure_id.id)

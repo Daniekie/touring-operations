@@ -235,6 +235,32 @@ class TestBooking(TourCase):
         self.assertEqual(target.seats_sold, 0)
         self.assertEqual(origin.seats_sold, 4)
 
+    def test_reviving_a_cancelled_booking_is_refused_when_the_seats_have_gone(self):
+        """A cancelled booking holds nothing, so putting it back is asking for
+        its seats again — on a boat that has since sold them to somebody else.
+
+        The seat check used to run only when `pax` or the departure changed, so
+        a state change from the list view walked straight past it.
+        """
+        departure = self._departure(capacity=4)
+        booking = self._booking(departure=departure, pax=4)
+        booking.action_cancel()
+        self._booking(departure=departure, pax=4, partner=self.other_partner)
+
+        with self.assertRaises(UserError, msg="A cancelled booking took seats already resold."):
+            booking.state = "draft"
+
+        self.assertEqual(departure.seats_sold, 4)
+
+    def test_reviving_a_cancelled_booking_is_allowed_when_the_seats_are_there(self):
+        departure = self._departure(capacity=10)
+        booking = self._booking(departure=departure, pax=4)
+        booking.action_cancel()
+
+        booking.state = "draft"
+
+        self.assertEqual(departure.seats_sold, 4)
+
     def test_a_booking_on_a_cancelled_departure_is_refused(self):
         departure = self._departure()
         departure.action_cancel()
