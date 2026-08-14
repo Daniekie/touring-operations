@@ -125,6 +125,55 @@ class TestBooking(TourCase):
         self.assertEqual(departure.seats_sold, 12)
         self.assertEqual(departure.state, "full")
 
+    def test_a_batch_of_bookings_cannot_oversell_one_departure(self):
+        """One `create()` call, several bookings, the same boat.
+
+        Checking each set of values on its own compares every one of them
+        against the same untouched seat count — none of them has been written
+        yet — so two parties of four both pass on a boat with six seats left.
+        The check has to be made once per departure, for what the whole batch
+        is asking for.
+        """
+        departure = self._departure(capacity=6)
+
+        with self.assertRaises(UserError, msg="A batch of two fours filled a boat of six."):
+            self.env["tour.booking"].create([
+                {"departure_id": departure.id, "partner_id": self.partner.id, "pax": 4},
+                {"departure_id": departure.id,
+                 "partner_id": self.other_partner.id, "pax": 4},
+            ])
+
+        self.assertEqual(departure.seats_sold, 0)
+
+    def test_a_batch_that_fits_is_still_created(self):
+        """The batch is refused for asking too much, not for being a batch."""
+        departure = self._departure(capacity=6)
+
+        bookings = self.env["tour.booking"].create([
+            {"departure_id": departure.id, "partner_id": self.partner.id, "pax": 4},
+            {"departure_id": departure.id, "partner_id": self.other_partner.id, "pax": 2},
+        ])
+
+        self.assertEqual(len(bookings), 2)
+        self.assertEqual(departure.seats_sold, 6)
+        self.assertEqual(departure.state, "full")
+
+    def test_a_batch_across_departures_is_checked_departure_by_departure(self):
+        """Seats on one boat are no reason to refuse a seat on another."""
+        first = self._departure(capacity=4)
+        second = self._departure(
+            capacity=4, start_datetime=fields.Datetime.now() + timedelta(days=31)
+        )
+
+        bookings = self.env["tour.booking"].create([
+            {"departure_id": first.id, "partner_id": self.partner.id, "pax": 4},
+            {"departure_id": second.id, "partner_id": self.other_partner.id, "pax": 4},
+        ])
+
+        self.assertEqual(len(bookings), 2)
+        self.assertEqual(first.seats_sold, 4)
+        self.assertEqual(second.seats_sold, 4)
+
     def test_growing_a_booking_only_asks_for_the_extra_seats(self):
         departure = self._departure(capacity=5)
         booking = self._booking(departure=departure, pax=4)
@@ -139,6 +188,52 @@ class TestBooking(TourCase):
 
         with self.assertRaises(UserError):
             booking.pax = 6
+
+    def test_growing_two_bookings_at_once_cannot_oversell(self):
+        """One `write()`, several bookings, the same boat.
+
+        Each booking's own seats are handed back to it — that is what `ignoring`
+        is for — but handing them back one booking at a time compares each
+        growth against a boat the others have not grown on yet. A list-view
+        multi-edit then oversells without a word.
+        """
+        # `max_pax` high enough that seven is a capacity question and not a
+        # party-size one — `ValidationError` is a `UserError`, so a party-size
+        # refusal would pass this test without capacity ever being consulted.
+        departure = self._departure(capacity=10, max_pax=10)
+        first = self._booking(departure=departure, pax=2)
+        second = self._booking(departure=departure, pax=2, partner=self.other_partner)
+
+        with self.assertRaises(UserError, msg="Two parties of seven fit a boat of ten."):
+            (first | second).write({"pax": 7})
+
+        self.assertEqual(departure.seats_sold, 4)
+
+    def test_growing_two_bookings_at_once_is_allowed_when_they_fit(self):
+        departure = self._departure(capacity=10)
+        first = self._booking(departure=departure, pax=2)
+        second = self._booking(departure=departure, pax=2, partner=self.other_partner)
+
+        (first | second).write({"pax": 5})
+
+        self.assertEqual(departure.seats_sold, 10)
+        self.assertEqual(departure.state, "full")
+
+    def test_moving_two_bookings_onto_one_departure_is_checked_together(self):
+        """The seats they hold on the boat they are leaving are no help on the
+        boat they are joining."""
+        origin = self._departure(capacity=10)
+        target = self._departure(
+            capacity=3, start_datetime=fields.Datetime.now() + timedelta(days=31)
+        )
+        first = self._booking(departure=origin, pax=2)
+        second = self._booking(departure=origin, pax=2, partner=self.other_partner)
+
+        with self.assertRaises(UserError, msg="Four people moved onto a boat of three."):
+            (first | second).write({"departure_id": target.id})
+
+        self.assertEqual(target.seats_sold, 0)
+        self.assertEqual(origin.seats_sold, 4)
 
     def test_a_booking_on_a_cancelled_departure_is_refused(self):
         departure = self._departure()

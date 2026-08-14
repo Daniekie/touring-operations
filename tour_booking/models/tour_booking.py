@@ -1,5 +1,7 @@
 import logging
 
+from collections import defaultdict
+
 from dateutil.relativedelta import relativedelta
 from markupsafe import Markup
 
@@ -368,16 +370,24 @@ class TourBooking(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        wanted = defaultdict(int)
         for vals in vals_list:
             if vals.get("name", "/") == "/":
                 vals["name"] = self.env["ir.sequence"].next_by_code("tour.booking") or "/"
             departure = self.env["tour.departure"].browse(vals["departure_id"])
             if "cancellation_policy_id" not in vals:
                 vals["cancellation_policy_id"] = departure.tour_id.cancellation_policy_id.id
-            # Seats are taken here, under the lock, before the row exists. A
-            # draft holds its seats exactly like a confirmed booking does.
+            # A draft holds its seats exactly like a confirmed booking does.
             if vals.get("state", "draft") in SEAT_HOLDING_STATES:
-                departure._lock_and_check(vals.get("pax", 1))
+                wanted[departure.id] += vals.get("pax", 1)
+
+        # Seats are taken here, under the lock, before the rows exist — once per
+        # departure, for everything this call is asking of it. Checking each set
+        # of values on its own would compare every one of them against the same
+        # untouched seat count, since none of them has been written yet, and let
+        # a batch of two fours onto a boat with six seats left.
+        for departure_id, pax in wanted.items():
+            self.env["tour.departure"].browse(departure_id)._lock_and_check(pax)
 
         bookings = super().create(vals_list)
         for booking in bookings:
@@ -483,17 +493,27 @@ class TourBooking(models.Model):
         self.write(values)
 
     def write(self, vals):
-        # Growing a party needs the same guarantee as making one. `ignoring`
-        # hands back the seats this booking already holds, so 2 -> 3 asks for
-        # one more seat rather than three.
+        # Growing a party needs the same guarantee as making one, and for the
+        # same reason it is asked once per departure rather than once per
+        # booking: nothing here has been written yet, so a second booking
+        # checked on its own would be measured against a boat the first has not
+        # grown on.
+        #
+        # `ignoring` hands back the seats these bookings already hold, so 2 -> 3
+        # asks for one more seat rather than three. Passing the whole recordset
+        # is safe: `_lock_and_check` only credits the ones sitting on the
+        # departure being checked, so a booking moving in from elsewhere brings
+        # no seats with it.
         if "pax" in vals or "departure_id" in vals:
-            for booking in self:
-                if booking.state not in SEAT_HOLDING_STATES:
-                    continue
-                departure = self.env["tour.departure"].browse(
-                    vals.get("departure_id", booking.departure_id.id)
+            holding = self.filtered(lambda b: b.state in SEAT_HOLDING_STATES)
+            wanted = defaultdict(int)
+            for booking in holding:
+                departure_id = vals.get("departure_id", booking.departure_id.id)
+                wanted[departure_id] += vals.get("pax", booking.pax)
+            for departure_id, pax in wanted.items():
+                self.env["tour.departure"].browse(departure_id)._lock_and_check(
+                    pax, ignoring=holding
                 )
-                departure._lock_and_check(vals.get("pax", booking.pax), ignoring=booking)
 
         touched = self.departure_id
         result = super().write(vals)
