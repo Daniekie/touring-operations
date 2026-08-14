@@ -1,7 +1,7 @@
 import base64
 import re
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from odoo import fields
 from odoo.tests import tagged
@@ -26,8 +26,14 @@ class TestWebsite(HttpCase, TourCase):
         cls.tour.is_published = True
         cls.departure = cls.env["tour.departure"].create({
             "tour_id": cls.tour.id,
-            "date": fields.Date.today() + timedelta(days=10),
-            "start_datetime": fields.Datetime.now() + timedelta(days=10),
+            # A fixed hour, not "now plus ten days". `date` is the local day the
+            # departure leaves on, so a fixture anchored to the clock puts a
+            # suite run at 21:00 four hours from the next day — and the test
+            # that adds four hours to this one then straddles midnight and
+            # looks for two departures on one day that are no longer on one day.
+            "start_datetime": datetime.combine(
+                fields.Date.today() + timedelta(days=10), time(8, 0)
+            ),
             "capacity": 10,
             "min_pax": 1,
             "max_pax": 6,

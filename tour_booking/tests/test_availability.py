@@ -199,6 +199,41 @@ class TestAvailability(TourCase):
             "A departure with a booking on it was retired by the generator.",
         )
 
+    def test_the_date_is_the_local_day_the_departure_leaves_on(self):
+        """`date` and `start_datetime` were two independent fields.
+
+        The public calendar keys off `date` and everything else off
+        `start_datetime`, so a departure whose two disagreed appeared on one day
+        of the website's calendar and left on another. A 23:30 UTC start is
+        already tomorrow in Amsterdam, which is the timezone the fixtures run
+        in.
+        """
+        departure = self.env["tour.departure"].create({
+            "tour_id": self.tour.id,
+            "date": date(2027, 3, 1),
+            "start_datetime": datetime(2027, 3, 1, 23, 30),
+            "capacity": 5,
+            "min_pax": 1,
+            "max_pax": 5,
+        })
+
+        self.assertEqual(departure.date, date(2027, 3, 2))
+
+    def test_moving_a_departure_moves_the_day_it_is_listed_under(self):
+        departure = self.env["tour.departure"].create({
+            "tour_id": self.tour.id,
+            "date": date(2027, 3, 1),
+            "start_datetime": datetime(2027, 3, 1, 8, 0),
+            "capacity": 5,
+            "min_pax": 1,
+            "max_pax": 5,
+        })
+        self.assertEqual(departure.date, date(2027, 3, 1))
+
+        departure.start_datetime = datetime(2027, 3, 4, 8, 0)
+
+        self.assertEqual(departure.date, date(2027, 3, 4))
+
     def test_past_departures_are_marked_done(self):
         past = self._departure(start_datetime=fields.Datetime.now() - timedelta(days=1))
 

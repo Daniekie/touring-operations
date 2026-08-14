@@ -54,7 +54,22 @@ class TourDeparture(models.Model):
     company_id = fields.Many2one(related="tour_id.company_id", store=True)
     currency_id = fields.Many2one(related="tour_id.currency_id")
 
-    date = fields.Date(required=True, index=True)
+    # Derived, not entered. The public calendar groups by `date` while
+    # everything else works from `start_datetime`, so two independent fields
+    # meant a departure could be listed on the website under one day and leave
+    # on another. Stored because the website's month query searches on it, and
+    # in the tour's own timezone because that is the day the guest turns up.
+    # `precompute` because the column is NOT NULL: without it the compute is
+    # deferred until the flush after the INSERT, and every create fails on the
+    # constraint before the value it would have written exists.
+    date = fields.Date(
+        required=True,
+        index=True,
+        compute="_compute_date",
+        store=True,
+        readonly=True,
+        precompute=True,
+    )
     start_datetime = fields.Datetime(required=True, index=True)
     capacity = fields.Integer(required=True)
     min_pax = fields.Integer(string="Minimum Party Size", required=True, default=1)
@@ -119,6 +134,17 @@ class TourDeparture(models.Model):
             target = "full" if departure.seats_available <= 0 else "open"
             if departure.state != target:
                 departure.with_context(**{SYSTEM_WRITE: True}).state = target
+
+    @api.depends("start_datetime", "tour_id.tz")
+    def _compute_date(self):
+        """The local day this departure leaves on.
+
+        Derived rather than entered, so the day the website lists a departure
+        under and the moment it actually leaves cannot disagree.
+        """
+        for departure in self:
+            if departure.start_datetime:
+                departure.date = departure._local_start().date()
 
     def _local_start(self):
         """The departure time in the tour's own timezone. -> aware datetime.
