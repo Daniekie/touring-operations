@@ -44,6 +44,33 @@ class TourBooking(models.Model):
     currency_id = fields.Many2one(related="departure_id.currency_id")
 
     pax = fields.Integer(string="Participants", required=True, default=1)
+
+    # --- What this booking was sold at -------------------------------------
+    #
+    # Copied from the tour when the booking is made, not read through it. A
+    # price is what the guest agreed to pay on the day, and a tour's price is
+    # the price of the *next* seat sold: reading it live meant that raising it
+    # for next season rewrote the total of every booking ever taken, paid ones
+    # included, which then read as underpaid by the difference. The extras
+    # already freeze their unit price for exactly this reason; see
+    # `tour.booking.extra.unit_price`.
+    #
+    # `copy=False` on both, so duplicating a booking is a new sale quoted at
+    # today's price rather than one that inherits a frozen one.
+    price_per_person = fields.Monetary(
+        string="Price per Person",
+        currency_field="currency_id",
+        readonly=True,
+        copy=False,
+        help="The per-person price this booking was sold at. Fixed when the "
+             "booking was created; changing the tour's price does not move it.",
+    )
+    tax_ids = fields.Many2many(
+        "account.tax",
+        string="Taxes",
+        copy=False,
+        help="The taxes in force when this booking was sold.",
+    )
     state = fields.Selection(
         [("draft", "Draft"), ("confirmed", "Confirmed"), ("cancelled", "Cancelled")],
         required=True,
@@ -134,8 +161,8 @@ class TourBooking(models.Model):
 
     @api.depends(
         "pax",
-        "tour_id.price_per_person",
-        "tour_id.tax_ids",
+        "price_per_person",
+        "tax_ids",
         "extra_line_ids.price_subtotal",
         "extra_line_ids.is_taxable",
     )
@@ -144,10 +171,14 @@ class TourBooking(models.Model):
 
         Never read a total from the browser, not even as a cross-check: the only
         number that matters is the one computed here.
+
+        Everything this reads belongs to the booking. Depending on the tour's
+        own price and taxes would put every sold booking back in reach of a
+        price change made months later.
         """
         for booking in self:
-            taxes = booking.tour_id.tax_ids
-            taxable = booking.pax * booking.tour_id.price_per_person
+            taxes = booking.tax_ids
+            taxable = booking.pax * booking.price_per_person
             untaxed_only = 0.0
             for line in booking.extra_line_ids:
                 if line.is_taxable:
@@ -377,6 +408,13 @@ class TourBooking(models.Model):
             departure = self.env["tour.departure"].browse(vals["departure_id"])
             if "cancellation_policy_id" not in vals:
                 vals["cancellation_policy_id"] = departure.tour_id.cancellation_policy_id.id
+            # The terms of the sale, taken from the tour once and then this
+            # booking's own. An explicit value is left alone, so a desk user can
+            # still sell a seat at a price of their choosing.
+            if "price_per_person" not in vals:
+                vals["price_per_person"] = departure.tour_id.price_per_person
+            if "tax_ids" not in vals:
+                vals["tax_ids"] = [fields.Command.set(departure.tour_id.tax_ids.ids)]
             # A draft holds its seats exactly like a confirmed booking does.
             if vals.get("state", "draft") in SEAT_HOLDING_STATES:
                 wanted[departure.id] += vals.get("pax", 1)

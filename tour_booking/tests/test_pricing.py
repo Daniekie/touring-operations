@@ -69,6 +69,55 @@ class TestPricing(TourCase):
         self.assertEqual(line.unit_price, 10.0)
         self.assertEqual(booking.amount_total, 60.0)
 
+    def test_raising_the_tour_price_leaves_a_sold_booking_alone(self):
+        """Next season's price is not what last season's guest agreed to pay.
+
+        The extras already freeze their unit price for exactly this reason. The
+        seat price has to be frozen the same way, or a price change rewrites the
+        total of every booking ever taken — including paid ones, which then read
+        as underpaid by the difference.
+        """
+        booking = self._booking(pax=2)
+        booking.action_confirm()
+
+        self.tour.price_per_person = 150.0
+
+        self.assertEqual(booking.price_per_person, 50.0)
+        self.assertEqual(booking.amount_total, 100.0)
+
+    def test_a_booking_made_after_the_price_change_pays_the_new_price(self):
+        """Frozen at the moment of sale, not frozen for good."""
+        self.tour.price_per_person = 150.0
+
+        booking = self._booking(pax=2)
+
+        self.assertEqual(booking.price_per_person, 150.0)
+        self.assertEqual(booking.amount_total, 300.0)
+
+    def test_changing_the_tours_taxes_leaves_a_sold_booking_alone(self):
+        """A tax rate is a rate on the day of sale, and the money has already
+        been split by it."""
+        self.tour.tax_ids = [(6, 0, self._tax(6.0).ids)]
+        booking = self._booking(pax=2)
+        booking.action_confirm()
+        self.assertAlmostEqual(booking.amount_tax, 6.0, places=2)
+
+        self.tour.tax_ids = [(6, 0, self._tax(21.0).ids)]
+
+        self.assertAlmostEqual(booking.amount_tax, 6.0, places=2)
+        self.assertAlmostEqual(booking.amount_total, 106.0, places=2)
+
+    def test_a_duplicated_booking_is_priced_afresh(self):
+        """A copy is a new sale, so it is quoted at today's price rather than
+        inheriting the one the original was frozen at."""
+        booking = self._booking(pax=1)
+        self.tour.price_per_person = 150.0
+
+        copy = booking.copy()
+
+        self.assertEqual(copy.price_per_person, 150.0)
+        self.assertEqual(copy.amount_total, 150.0)
+
     def test_an_extra_cannot_exceed_its_maximum_quantity(self):
         self.wetsuit.max_quantity = 2
         booking = self._booking(pax=4)

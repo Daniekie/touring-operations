@@ -53,6 +53,12 @@
                             <field name="start_datetime" readonly="1"/>
                         </group>
                         <group string="Amount">
+                            <!-- What the seats were sold at, which is not
+                                 necessarily what the tour costs today. Shown so
+                                 that a total nobody can derive from the current
+                                 price list still has an explanation on it. -->
+                            <field name="price_per_person"/>
+                            <field name="tax_ids" widget="many2many_tags" readonly="1"/>
                             <field name="amount_untaxed"/>
                             <field name="amount_tax"/>
                             <field name="amount_total" class="oe_subtotal_footer_separator"/>
