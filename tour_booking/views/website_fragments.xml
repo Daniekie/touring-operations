@@ -112,14 +112,27 @@
 
             Every tile is the same markup with the same data attributes,
             because they all feed one lightbox and it should not care which
-            one was clicked.
+            one was clicked. `tabindex` and `role` are on every one of them for
+            the same reason: a picture that only opens under a mouse is a
+            picture half the visitors cannot look at.
+
+            The small tiles ask for a resized copy and carry the full-size URL
+            on `data-full`. They are drawn about 460 pixels wide, and five
+            1920px photographs above the fold were most of what the page
+            weighed — the lightbox reads `data-full`, so it still shows the
+            real thing.
+
+            The size goes in the URL as `/768x768` rather than by asking for an
+            `image_512` field: `tour.tour.image` stores one plain `image_1920`
+            and does not inherit `image.mixin`, so there are no other sizes to
+            name and asking for one serves a placeholder.
         -->
         <t t-set="photos" t-value="tour.image_ids"/>
         <t t-if="tour.image_1920 or photos">
             <div class="o_tour_photos mb-4"
                  t-att-data-count="len(photos) + (1 if tour.image_1920 else 0)">
                 <figure t-if="tour.image_1920" class="o_tour_photo o_tour_photo_main"
-                        data-index="0">
+                        data-index="0" tabindex="0" role="button">
                     <img t-attf-src="/web/image/tour.tour/#{tour.id}/image_1920"
                          t-att-alt="tour.name"/>
                 </figure>
@@ -128,16 +141,20 @@
                      is the whole page. -->
                 <figure t-foreach="photos[:4]" t-as="image"
                         class="o_tour_photo"
-                        t-att-data-index="image_index + 1">
-                    <img t-attf-src="/web/image/tour.tour.image/#{image.id}/image_1920"
+                        t-att-data-index="image_index + 1"
+                        tabindex="0" role="button">
+                    <img t-attf-src="/web/image/tour.tour.image/#{image.id}/image_1920/768x768"
+                         t-attf-data-full="/web/image/tour.tour.image/#{image.id}/image_1920"
                          t-att-alt="image.name or tour.name"
                          loading="lazy"/>
                 </figure>
                 <!-- Hidden, so the lightbox can page through everything
-                     without a second request. -->
+                     without a second request. Full size from the start: these
+                     are never drawn small, they are only ever enlarged. -->
                 <figure t-foreach="photos[4:]" t-as="image"
                         class="o_tour_photo d-none"
-                        t-att-data-index="image_index + 5">
+                        t-att-data-index="image_index + 5"
+                        tabindex="0" role="button">
                     <img t-attf-src="/web/image/tour.tour.image/#{image.id}/image_1920"
                          t-att-alt="image.name or tour.name"
                          loading="lazy"/>

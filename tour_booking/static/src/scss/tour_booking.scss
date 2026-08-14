@@ -1,6 +1,24 @@
 // Frontend only. None of this is used in the back office, and loading it into
 // the web client would cost every internal user the download.
 
+// The whole look, in one place. Every colour here resolves to something the
+// installed theme already defines, so a tour page picks up the operator's
+// palette rather than insisting on one of its own; the literals are only what
+// stock Odoo would have given us anyway.
+//
+// On `#wrapwrap` rather than `:root` so the embed — which is a `#wrapwrap` with
+// no site around it — gets them too.
+#wrapwrap {
+    --tour-accent: var(--o-color-1, #714b67);
+    --tour-ink: var(--o-gray-900, #212529);
+    --tour-muted: var(--o-gray-600, #6c757d);
+    --tour-line: var(--o-gray-200, #dee2e6);
+    --tour-surface: var(--o-gray-100, #f1f3f5);
+    --tour-radius: .875rem;
+    --tour-radius-sm: .5rem;
+    --tour-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 10px 30px rgba(0, 0, 0, .07);
+}
+
 .o_tour_card {
     transition: box-shadow .15s ease-in-out;
 
@@ -17,18 +35,26 @@
 // The photo mosaic: one big picture, four alongside. Grid rather than
 // flexbox because the shape is the point — the large tile has to span both
 // rows, and a flex child cannot.
+//
+// The proportion is on the container, not the tiles. It used to be on both —
+// a 4/3 main tile spanning two rows of 3/2 tiles — and those are three
+// constraints that cannot all hold at once, so the side column ended some
+// twenty pixels short of the main photograph and the first thing on the page
+// was visibly crooked.
 .o_tour_photos {
     position: relative;
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: .5rem;
-    border-radius: .75rem;
+    aspect-ratio: 2 / 1;
+    gap: .625rem;
+    border-radius: var(--tour-radius);
     overflow: hidden;
 
     .o_tour_photo {
         position: relative;
         margin: 0;
+        height: 100%;
         overflow: hidden;
         cursor: zoom-in;
 
@@ -43,48 +69,89 @@
         &:hover img {
             transform: scale(1.03);
         }
+
+        &:focus-visible {
+            outline: 3px solid var(--tour-accent);
+            outline-offset: -3px;
+        }
     }
 
     // Two rows tall, first column. Everything else falls into place after it.
     .o_tour_photo_main {
         grid-row: span 2;
-        aspect-ratio: 4 / 3;
-    }
-
-    .o_tour_photo:not(.o_tour_photo_main) {
-        aspect-ratio: 3 / 2;
     }
 
     .o_tour_photos_all {
         position: absolute;
-        right: 1rem;
-        bottom: 1rem;
-        border: 1px solid rgba(0, 0, 0, .15);
-        box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+        right: .875rem;
+        bottom: .875rem;
+        padding: .55rem 1rem;
+        border: 0;
+        border-radius: 2rem;
+        background-color: #fff;
+        color: var(--tour-ink);
+        font-weight: 600;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .22);
+        transition: transform .15s ease-out, box-shadow .15s ease-out;
+
+        &:hover {
+            background-color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, .26);
+        }
+
+        &:focus-visible {
+            outline: 3px solid var(--tour-accent);
+            outline-offset: 2px;
+        }
     }
 
     // A phone is one column wide, and a 2fr/1fr/1fr grid squeezed into it
-    // gives five unreadable slivers.
+    // gives five unreadable slivers. The rows go `auto` here, so the tiles
+    // have to carry their own proportions again.
     @media (max-width: 767.98px) {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto;
+        aspect-ratio: auto;
+
+        .o_tour_photo {
+            aspect-ratio: 3 / 2;
+        }
 
         .o_tour_photo_main {
             grid-column: span 2;
             grid-row: auto;
+            aspect-ratio: 4 / 3;
         }
     }
 }
 
-// A tour with no gallery: the main picture alone, still the same shape.
+// Fewer photos than the mosaic wants. Without these a tour with two or three
+// leaves holes in the grid, which reads as a page that failed to load rather
+// than one with less to show.
 .o_tour_photos[data-count="1"] {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
+    aspect-ratio: 21 / 9;
 
     .o_tour_photo_main {
         grid-row: auto;
-        aspect-ratio: 21 / 9;
     }
+}
+
+.o_tour_photos[data-count="2"] {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    aspect-ratio: 21 / 9;
+
+    .o_tour_photo_main {
+        grid-row: auto;
+    }
+}
+
+.o_tour_photos[data-count="3"] {
+    grid-template-columns: 2fr 1fr;
+    aspect-ratio: 12 / 5;
 }
 
 .o_tour_lightbox_open {
@@ -160,77 +227,150 @@
 .o_tour_included ul,
 .o_tour_excluded ul {
     list-style: none;
-    padding-left: 1.5rem;
+    padding-left: 2.25rem;
+
+    li {
+        margin-bottom: .5rem;
+    }
 
     li::before {
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         width: 1.5rem;
-        margin-left: -1.5rem;
+        height: 1.5rem;
+        margin-left: -2.25rem;
+        margin-right: .75rem;
+        vertical-align: -.35rem;
+        border-radius: 50%;
+        font-size: .8125rem;
     }
 }
 
 .o_tour_included ul li::before {
     content: "\2713";
     color: var(--bs-success, #28a745);
+    background-color: rgba(40, 167, 69, .12);
 }
 
 .o_tour_excluded ul li::before {
     content: "\2717";
     color: var(--bs-danger, #dc3545);
+    background-color: rgba(220, 53, 69, .1);
 }
 
-.o_tour_itinerary li {
-    margin-bottom: .75rem;
+// A numbered line down the side rather than a bare `<ol>`: the steps are a
+// sequence, and the markup already says so — this only draws it. Counters and
+// pseudo-elements, so the template stays an ordinary list.
+.o_tour_itinerary {
+    list-style: none;
+    counter-reset: tour-step;
+    padding-left: 0;
+
+    li {
+        position: relative;
+        counter-increment: tour-step;
+        padding-left: 3rem;
+        padding-bottom: 1.25rem;
+
+        &::before {
+            content: counter(tour-step);
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background-color: var(--tour-surface);
+            color: var(--tour-accent);
+            font-size: .875rem;
+            font-weight: 700;
+        }
+
+        // The thread between one step and the next. Not under the last one,
+        // where it would point at nothing.
+        &:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 2.25rem;
+            bottom: .25rem;
+            left: .9375rem;
+            width: 2px;
+            background-color: var(--tour-line);
+        }
+    }
 }
 
-// A grid rather than a carousel: every photo is visible at once, it needs no
-// JavaScript, and it degrades to a single column on a phone by itself.
-// The line under the title: duration, meeting point, price. Wraps on a phone
+// The line under the title: duration, meeting point, price. One band with a
+// rule above and below rather than loose grey lozenges, and the price aligned
+// hard right where somebody scanning expects to find it. Wraps on a phone
 // instead of squeezing three things onto one line.
 .o_tour_meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: .5rem;
+    gap: 1.5rem;
+    padding: .875rem 0;
+    border-top: 1px solid var(--tour-line);
+    border-bottom: 1px solid var(--tour-line);
 
     > span {
         display: inline-flex;
         align-items: center;
-        gap: .4rem;
-        padding: .35rem .75rem;
-        border-radius: 2rem;
-        background-color: var(--o-gray-100, #f1f3f5);
-        color: var(--o-gray-700, #495057);
-        font-size: .9375rem;
+        gap: .625rem;
+        color: var(--tour-ink);
+        font-weight: 500;
         white-space: nowrap;
     }
 
     .fa {
-        color: var(--o-color-1, #875a7b);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 50%;
+        background-color: var(--tour-surface);
+        color: var(--tour-accent);
+        font-size: .875rem;
     }
 
     // The price is the one item somebody is looking for, so it is the one
     // that does not look like the others.
     .o_tour_meta_price {
-        background-color: transparent;
-        padding-left: .25rem;
-        font-size: 1.15rem;
+        margin-left: auto;
+        font-size: 1.5rem;
         font-weight: 700;
-        color: var(--o-gray-900, #212529);
+        line-height: 1.2;
 
         .text-muted {
             font-size: .875rem;
             font-weight: 400;
         }
     }
+
+    // Pushed right, a price is the last thing on a line of three. Wrapped onto
+    // its own line on a phone, it is the first thing on that line, and the
+    // margin that put it there now only indents it.
+    @media (max-width: 767.98px) {
+        gap: .875rem 1.25rem;
+
+        .o_tour_meta_price {
+            margin-left: 0;
+            flex-basis: 100%;
+        }
+    }
 }
 
-// Each block of copy reads as its own thing, with a rule under the heading
-// rather than a heavier font doing all the work.
+// Each block of copy reads as its own thing, separated by a rule rather than
+// by a heavier font doing all the work.
 .o_tour_section {
-    padding-top: 2rem;
-    margin-bottom: 2rem;
-    border-top: 1px solid var(--o-gray-200, #dee2e6);
+    padding-top: 2.5rem;
+    margin-bottom: 2.5rem;
+    border-top: 1px solid var(--tour-line);
 
     // The first one sits under the description and needs no line above it.
     &:first-of-type {
@@ -239,23 +379,76 @@
     }
 
     .o_tour_section_title {
-        margin-bottom: 1rem;
-        font-size: 1.35rem;
-        font-weight: 700;
+        margin-bottom: 1.25rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: -.01em;
+    }
+}
 
-        &::after {
-            content: "";
-            display: block;
-            width: 2.5rem;
-            height: 3px;
-            margin-top: .5rem;
-            border-radius: 2px;
-            background-color: var(--o-color-1, #875a7b);
-        }
+// The tour page's own chrome. Scoped, because the gallery and the booking card
+// above are shared with the website block and the embed, and these are not.
+.o_tour_page {
+
+    h1 {
+        margin-bottom: 1.25rem;
+        // The middle term is wrapped in `calc()` so that Sass hands it to the
+        // browser instead of trying to add rem to vw itself, which it cannot.
+        font-size: clamp(1.9rem, calc(1.1rem + 2.4vw), 2.75rem);
+        font-weight: 700;
+        letter-spacing: -.02em;
+        line-height: 1.15;
+    }
+
+    // The opening paragraphs, set to be read: a measure that does not run the
+    // width of the column, and the leading to go with it.
+    .o_tour_lead {
+        max-width: 68ch;
+        font-size: 1.0625rem;
+        line-height: 1.7;
+        color: var(--tour-ink);
     }
 }
 
 .o_tour_widget {
+    border: 1px solid var(--tour-line);
+    border-radius: var(--tour-radius);
+    box-shadow: var(--tour-shadow);
+
+    .card-body {
+        padding: 1.375rem;
+    }
+
+    // Capped, and centred in whatever it is given. The cells are square, and
+    // in a full-width `col-lg-5` that makes a month some 370 pixels tall and
+    // pushes Book now off the bottom of the card.
+    .o_tour_calendar {
+        max-width: 22rem;
+        margin-inline: auto;
+    }
+
+    .o_tour_month_label {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .o_tour_prev,
+    .o_tour_next {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background-color: transparent;
+        color: var(--tour-ink);
+
+        &:hover {
+            background-color: var(--tour-surface);
+        }
+    }
 
     .o_tour_grid {
         display: grid;
@@ -265,35 +458,79 @@
     }
 
     .o_tour_dow {
-        font-size: .75rem;
+        font-size: .6875rem;
         font-weight: 600;
-        color: var(--bs-secondary-color, #6c757d);
-        padding-bottom: .25rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--tour-muted);
+        padding-bottom: .5rem;
     }
 
+    // Square, so a month reads as a grid of days rather than a stack of
+    // squashed rows.
     .o_tour_day {
-        padding: .4rem 0;
-        border-radius: .25rem;
+        display: grid;
+        place-items: center;
+        aspect-ratio: 1;
+        padding: 0;
+        border-radius: var(--tour-radius-sm);
         font-size: .9rem;
 
         &.unavailable {
-            color: var(--bs-secondary-color, #adb5bd);
+            color: var(--tour-muted);
+            opacity: .55;
+            cursor: default;
         }
 
         &.available {
             cursor: pointer;
-            background-color: var(--bs-tertiary-bg, #f1f3f5);
+            color: var(--tour-ink);
             font-weight: 600;
+            box-shadow: inset 0 0 0 1px var(--tour-line);
+            transition: background-color .12s ease-out, color .12s ease-out;
 
             &:hover {
-                background-color: var(--bs-primary, #714b67);
-                color: #fff;
+                background-color: var(--tour-surface);
             }
         }
 
         &.selected {
-            background-color: var(--bs-primary, #714b67);
+            background-color: var(--tour-accent);
             color: #fff;
+            box-shadow: none;
+        }
+
+        &:focus-visible {
+            outline: 3px solid var(--tour-accent);
+            outline-offset: 1px;
+        }
+    }
+
+    .o_tour_total {
+        padding-top: 1rem;
+        border-top: 1px solid var(--tour-line);
+
+        .o_tour_total_label {
+            color: var(--tour-muted);
+        }
+
+        .o_tour_total_value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+    }
+
+    .o_tour_book_button {
+        padding: .75rem;
+        border-radius: .625rem;
+        font-weight: 600;
+
+        // Disabled, and looking it: the button spends the first half of every
+        // visit unusable, and one that only looks slightly faded reads as a
+        // click that failed rather than a date that has not been picked.
+        &:disabled {
+            opacity: .45;
+            cursor: not-allowed;
         }
     }
 }

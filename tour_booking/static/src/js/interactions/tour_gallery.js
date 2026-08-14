@@ -24,6 +24,7 @@ export class TourGallery extends Interaction {
             // test — or a fast visitor — clicks a photo into the void.
             "t-att-class": () => ({ o_tour_photos_ready: true }),
             "t-on-click": (ev) => this.onClick(ev),
+            "t-on-keydown": (ev) => this.onTileKey(ev),
         },
         _document: { "t-on-keydown": (ev) => this.onKey(ev) },
     };
@@ -40,6 +41,22 @@ export class TourGallery extends Interaction {
         }
         const figure = ev.target.closest(".o_tour_photo");
         if (figure) {
+            this.open(parseInt(figure.dataset.index, 10) || 0);
+        }
+    }
+
+    /**
+     * The tiles are focusable, so they have to answer the keys a button
+     * answers. Space would otherwise scroll the page out from under the
+     * lightbox that just opened.
+     */
+    onTileKey(ev) {
+        if (ev.key !== "Enter" && ev.key !== " ") {
+            return;
+        }
+        const figure = ev.target.closest(".o_tour_photo");
+        if (figure) {
+            ev.preventDefault();
             this.open(parseInt(figure.dataset.index, 10) || 0);
         }
     }
@@ -105,7 +122,9 @@ export class TourGallery extends Interaction {
         this.index = (index + count) % count;
         const photo = this.photos[this.index];
         const image = this.overlay.querySelector(".o_tour_lightbox_stage img");
-        image.src = photo.src;
+        // The small tiles are served resized and carry the full-size URL on
+        // `data-full`. Without this the lightbox would enlarge the thumbnail.
+        image.src = photo.dataset.full || photo.src;
         image.alt = photo.alt || "";
         this.overlay.querySelector(".o_tour_lightbox_count").textContent =
             `${this.index + 1} / ${count}`;

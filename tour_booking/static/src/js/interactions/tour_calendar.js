@@ -27,7 +27,10 @@ export class TourCalendar extends Interaction {
     dynamicContent = {
         ".o_tour_prev": { "t-on-click": () => this.shiftMonth(-1) },
         ".o_tour_next": { "t-on-click": () => this.shiftMonth(1) },
-        ".o_tour_grid": { "t-on-click": (ev) => this.onGridClick(ev) },
+        ".o_tour_grid": {
+            "t-on-click": (ev) => this.onGridClick(ev),
+            "t-on-keydown": (ev) => this.onGridKey(ev),
+        },
         ".o_tour_time_options": { "t-on-click": (ev) => this.onTimeClick(ev) },
         ".o_tour_pax": { "t-on-change": (ev) => this.onChangePax(ev) },
     };
@@ -110,6 +113,11 @@ export class TourCalendar extends Interaction {
             if (this.days[iso]) {
                 cell.classList.add("available");
                 cell.dataset.date = iso;
+                // A day you can book is a control, and a control has to be
+                // reachable by keyboard. The ones you cannot book are not, or
+                // tabbing through a month would mean thirty stops at nothing.
+                cell.tabIndex = 0;
+                cell.setAttribute("role", "button");
             } else {
                 cell.classList.add("unavailable");
             }
@@ -135,6 +143,22 @@ export class TourCalendar extends Interaction {
     onGridClick(ev) {
         const cell = ev.target.closest(".o_tour_day.available");
         if (cell) {
+            this.pickDay(cell);
+        }
+    }
+
+    /**
+     * The day cells are `div`s carrying `role="button"`, so nothing gives them
+     * Enter and Space for free. Space is prevented as well as handled: left
+     * alone it scrolls the page away from the card being filled in.
+     */
+    onGridKey(ev) {
+        if (ev.key !== "Enter" && ev.key !== " ") {
+            return;
+        }
+        const cell = ev.target.closest(".o_tour_day.available");
+        if (cell) {
+            ev.preventDefault();
             this.pickDay(cell);
         }
     }

@@ -18,13 +18,16 @@
 
     <template id="tour_detail" name="Tour">
         <t t-call="website.layout">
-            <div id="wrap">
+            <div id="wrap" class="o_tour_page">
                 <!-- The photos lead, full width, and everything else follows.
                      They used to be a background-image hero with a second wall
                      of thumbnails buried under the description — two bites at
                      the same job, neither of which could be enlarged. -->
                 <div class="container mt-4">
-                    <h1 t-field="tour.name" class="mb-3"/>
+                    <!-- No spacing utility on the title: the stylesheet sets
+                         its size and the margin that goes with that size, and
+                         a `mb-*` is `!important` and would win over it. -->
+                    <h1 t-field="tour.name"/>
                     <t t-call="tour_booking.experience_gallery"/>
                     <!-- Duration, where from, what it costs — the three things
                          somebody scans for before reading a word. Under the
@@ -34,10 +37,13 @@
                          price is still out here rather than at the top of the
                          booking card, which is sticky and slides under the
                          site header. -->
-                    <div class="o_tour_meta mb-3">
-                        <span><i class="fa fa-clock-o me-1"/><span t-field="tour.duration_display"/></span>
+                    <!-- The icons carry no `me-*`: each one is drawn as a round
+                         chip with its own spacing, and a margin utility on top
+                         of that pushes the label off centre. -->
+                    <div class="o_tour_meta">
+                        <span><i class="fa fa-clock-o"/><span t-field="tour.duration_display"/></span>
                         <span t-if="tour.location_id">
-                            <i class="fa fa-map-marker me-1"/>
+                            <i class="fa fa-map-marker"/>
                             <span t-field="tour.location_id.name"/>
                         </span>
                         <span class="o_tour_meta_price">
@@ -48,10 +54,10 @@
                     </div>
                 </div>
 
-                <div class="container my-5">
+                <div class="container mt-4 mb-5">
                     <div class="row">
                         <div class="col-lg-7">
-                            <div t-field="tour.description" class="mb-4"/>
+                            <div t-field="tour.description" class="o_tour_lead mb-4"/>
 
                             <section t-if="tour.itinerary_step_ids" class="o_tour_section">
                                 <h3 class="o_tour_section_title">Itinerary</h3>
@@ -101,8 +107,9 @@
 
                             <section t-if="tour.cancellation_policy_id" class="o_tour_section">
                                 <h3 class="o_tour_section_title">Cancellation policy</h3>
-                                <div t-field="tour.cancellation_policy_id.description"/>
-                                <ul class="list-unstyled">
+                                <div t-if="tour.cancellation_policy_id.description"
+                                     t-field="tour.cancellation_policy_id.description"/>
+                                <ul t-if="tour.cancellation_policy_id.rule_ids" class="list-unstyled">
                                     <li t-foreach="tour.cancellation_policy_id.rule_ids" t-as="rule">
                                         Cancel at least <t t-esc="rule.hours_before"/> hours before
                                         departure for a <t t-esc="int(rule.refund_percent)"/>% refund.

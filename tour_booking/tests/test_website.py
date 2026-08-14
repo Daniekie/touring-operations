@@ -86,10 +86,15 @@ class TestWebsite(HttpCase, TourCase):
         body = self.url_open(self.tour.website_url).text
 
         self.assertIn("o_tour_photos", body)
-        self.assertEqual(
-            body.count("/web/image/tour.tour.image/"), 3,
-            "Every gallery image should appear on the page.",
-        )
+        # Asked for by id rather than counted. A tile carries two URLs for the
+        # same photograph — the 512px one it draws and the full-size one the
+        # lightbox opens — so a total of `/web/image/` occurrences stopped
+        # being a count of photographs.
+        for image in self.tour.image_ids:
+            self.assertIn(
+                "/web/image/tour.tour.image/%s/" % image.id, body,
+                "%s is stored but never rendered." % image.name,
+            )
 
     def test_an_unpublished_tour_page_is_not_found(self):
         self.tour.is_published = False
