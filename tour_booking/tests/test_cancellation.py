@@ -160,6 +160,46 @@ class TestCancellation(TourCase):
             booking.action_cancel()
         self.assertEqual(booking.refund_amount, 0.0)
 
+    def test_deleting_a_tour_that_has_guests_on_it_says_so(self):
+        """`tour_id` cascades to departures, and `departure_id` restricts on
+        bookings — so the delete reaches Postgres and comes back as a raw
+        `IntegrityError` on a screen an operator can do nothing with.
+        """
+        booking = self._booking(pax=1)
+        tour = booking.departure_id.tour_id
+
+        with self.assertRaises(UserError) as caught:
+            tour.unlink()
+
+        self.assertIn("booking", str(caught.exception).lower())
+
+    def test_a_tour_whose_bookings_were_all_cancelled_is_still_protected(self):
+        """The foreign key restricts on the row, not on the state."""
+        booking = self._booking(pax=1)
+        booking.action_cancel()
+
+        with self.assertRaises(UserError):
+            booking.departure_id.tour_id.unlink()
+
+    def test_a_tour_nobody_has_booked_is_still_deletable(self):
+        tour = self.env["tour.tour"].create({
+            "name": "Never Sold",
+            "duration_hours": 1.0,
+            "default_capacity": 4,
+            "price_per_person": 10.0,
+        })
+        self.env["tour.departure"].create({
+            "tour_id": tour.id,
+            "start_datetime": fields.Datetime.now() + timedelta(days=5),
+            "capacity": 4,
+            "min_pax": 1,
+            "max_pax": 4,
+        })
+
+        tour.unlink()
+
+        self.assertFalse(tour.exists())
+
     def test_the_refund_preview_reflects_the_moment_it_is_asked(self):
         """The 'if you cancel now' figure is a method, not a field: it has to
         move as the departure approaches."""

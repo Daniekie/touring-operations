@@ -1,7 +1,7 @@
 from markupsafe import Markup
 
 from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 # What the website menu is built from. Writing anything else cannot change the
 # menu, so it does not pay for a rebuild.
@@ -267,7 +267,26 @@ class TourTour(models.Model):
 
     def unlink(self):
         """The entry itself goes with the tour — `tour_id` cascades. This is
-        for the numbering of the ones that are left."""
+        for the numbering of the ones that are left.
+
+        The guard first, because the two `ondelete` rules pull in opposite
+        directions on purpose: departures cascade from the tour, bookings
+        restrict their departure. Deleting a tour somebody has booked therefore
+        reached Postgres and came back as a raw foreign-key error on a screen
+        an operator can do nothing with. Archiving is what they want here, and
+        this says so.
+        """
+        # Any booking, cancelled ones included: the restriction is on the row,
+        # not on the state, so a tour whose bookings were all cancelled hits
+        # exactly the same foreign key.
+        booked = self.env["tour.booking"].search([("tour_id", "in", self.ids)], limit=1)
+        if booked:
+            raise UserError(_(
+                "%(tour)s has bookings on it and cannot be deleted. Archive it "
+                "instead: it stops being sold and the bookings stay where they "
+                "are.",
+                tour=booked.tour_id.name,
+            ))
         result = super().unlink()
         self.env["website.menu"].sudo()._tour_sync()
         return result
