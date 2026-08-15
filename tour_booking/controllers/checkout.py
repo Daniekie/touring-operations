@@ -163,12 +163,29 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
             "extras": booking_sudo.tour_id.extra_ids,
             "questions": booking_sudo.tour_id.question_ids,
             "refund_preview": booking_sudo._refund_preview(),
-            "error": kwargs.get("error"),
+            "error": self._error_message(kwargs.get("error")),
         }
         if booking_sudo.state == "draft":
             values.update(self._prepare_payment_values(booking_sudo))
             return request.render("tour_booking.checkout", values)
         return request.render("tour_booking.booking_confirmation", values)
+
+    def _error_message(self, code):
+        """The sentence behind an error code in the URL. -> str or None.
+
+        A code and not the sentence itself. What used to travel here was the
+        text of whatever `UserError` the cancel route caught, which meant the
+        page printed any sentence a URL asked it to — escaped, so not script,
+        but a link that puts "call this number to re-enter your card" in the
+        operator's own chrome above a genuine booking is most of what phishing
+        needs.
+        """
+        return {
+            "cannot_cancel": _(
+                "This booking can no longer be cancelled. Its departure has "
+                "already run, or it was cancelled already."
+            ),
+        }.get(code)
 
     def _prepare_payment_values(self, booking_sudo):
         """Everything `payment.form` needs to render itself.
@@ -366,10 +383,13 @@ class TourBookingCheckout(payment_portal.PaymentPortal):
             return request.redirect("/tours")
         try:
             booking_sudo.action_cancel()
-        except UserError as error:
-            return request.redirect("%s&error=%s" % (
-                booking_sudo._checkout_url(), error.args[0] if error.args else "",
-            ))
+        except UserError:
+            # A code, not the exception's own text: see `_error_message`. The
+            # reason a cancellation is refused is always the same one, so
+            # nothing is lost by naming it rather than forwarding it.
+            return request.redirect(
+                "%s&error=cannot_cancel" % booking_sudo._checkout_url()
+            )
         return request.redirect(booking_sudo._checkout_url())
 
     # --- Payment -----------------------------------------------------------

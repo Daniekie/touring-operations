@@ -168,6 +168,42 @@ class TestCheckout(HttpCase, TourCase):
 
         self.assertEqual(response.status_code, 303, "It should redirect away.")
 
+    def test_the_booking_page_does_not_echo_whatever_the_url_says(self):
+        """`?error=` was rendered as given.
+
+        Escaped, so not script — but a link could put any sentence in the
+        operator's own chrome, above a real booking, which is the shape most
+        phishing takes.
+        """
+        booking = self._draft(pax=1)
+
+        response = self.url_open(
+            "%s&error=Your+payment+failed,+call+0900-CROOK+to+re-enter+your+card"
+            % booking._checkout_url()
+        )
+
+        self.assertNotIn("0900-CROOK", response.text)
+
+    def test_a_refused_cancellation_still_tells_the_guest_why(self):
+        """The message has to survive the redirect that carries it.
+
+        The refusal needs a departure that has already *run* — a merely
+        cancelled one still lets the guest cancel their booking, so a test built
+        on that would pass without the error path ever running.
+        """
+        booking = self._draft(pax=1)
+        url = booking._checkout_url()
+        token = self._csrf_token(url)
+        booking.departure_id.start_datetime = fields.Datetime.now() - timedelta(days=1)
+
+        response = self.url_open(
+            "/tour/booking/%s/cancel" % booking.id,
+            data={"access_token": booking.access_token, "csrf_token": token},
+        )
+
+        self.assertIn("no longer be cancelled", response.text)
+        self.assertEqual(booking.state, "draft")
+
     # --- Whose contact the details step may rewrite -------------------------
 
     def _save_details(self, booking, **fields_):
