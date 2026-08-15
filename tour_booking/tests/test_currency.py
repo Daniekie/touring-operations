@@ -13,6 +13,7 @@ the callback has nothing to reconcile and a refund has nothing to re-derive.
 from datetime import timedelta
 
 from odoo import fields
+from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import HttpCase
 
@@ -98,6 +99,23 @@ class TestSettlementCurrency(TourCase):
 
         self.assertAlmostEqual(booking.fx_rate, 0.90 * 1.03, places=6)
         self.assertEqual(booking.amount_settlement, 92.7)
+
+    def test_a_margin_that_would_wipe_out_the_charge_is_refused(self):
+        """The margin is a percentage typed into a settings field.
+
+        Nothing bounded it, so -100 charges every guest nothing and anything
+        below that charges a negative amount — a refund, issued at checkout, to
+        everyone.
+        """
+        with self.assertRaises(ValidationError):
+            self.env.company.tour_fx_margin = -100.0
+
+    def test_an_ordinary_negative_margin_is_still_allowed(self):
+        """An operator who wants to absorb a little of the drift themselves is
+        making a choice, not a mistake."""
+        self.env.company.tour_fx_margin = -2.0
+
+        self.assertEqual(self.env.company.tour_fx_margin, -2.0)
 
     def test_the_stored_rate_is_the_effective_one(self):
         """Margin included, so nothing downstream can apply it a second time."""

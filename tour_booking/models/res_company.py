@@ -1,4 +1,6 @@
-from odoo import fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
+
 from odoo.addons.base.models.res_partner import _tz_get
 
 
@@ -58,6 +60,24 @@ class ResCompany(models.Model):
              "Leave empty to let any site embed them, which is usually what "
              "you want for a public catalogue.",
     )
+
+    @api.constrains("tour_fx_margin")
+    def _check_fx_margin(self):
+        """A percentage typed into a settings field, with nothing under it.
+
+        At -100 the rate is zero and every guest is charged nothing; below that
+        the charge is negative, which is a refund issued at checkout to
+        everybody who books. A modest negative margin is a real choice — an
+        operator absorbing a little of the drift themselves — so only the part
+        that cannot be meant is refused.
+        """
+        for company in self:
+            if company.tour_fx_margin <= -100.0:
+                raise ValidationError(_(
+                    "An exchange margin of %(margin)s%% would charge guests "
+                    "nothing at all, or less.",
+                    margin=company.tour_fx_margin,
+                ))
 
     def write(self, vals):
         """Switching the menu setting rebuilds the menu there and then.
