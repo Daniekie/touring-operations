@@ -98,8 +98,7 @@ class TestPageUrl(TransactionCase):
     def test_an_unpublished_experience_is_told_its_page_is_not_live_yet(self):
         """The page 404s for visitors until it is published, so a bare "here is
         your page" would be a link the operator opens and finds broken."""
-        tour = self._tour()
-        self.assertFalse(tour.is_published)
+        tour = self._tour(is_published=False)
 
         message = tour.action_confirm()["params"]["message"]
 
@@ -107,11 +106,36 @@ class TestPageUrl(TransactionCase):
 
     def test_a_published_experience_is_not_told_to_publish_it(self):
         tour = self._tour()
-        tour.is_published = True
+        self.assertTrue(tour.is_published)
 
         message = tour.action_confirm()["params"]["message"]
 
         self.assertNotIn("publish", message.lower())
+
+    # --- Going live ---------------------------------------------------------
+
+    def test_a_new_experience_is_published(self):
+        """An experience is filled in so that it can be sold, so publishing it
+        was a step people forgot rather than a decision they made — and the
+        page they had just been handed the address of answered 404."""
+        tour = self._tour()
+
+        self.assertTrue(tour.is_published)
+
+    def test_one_that_could_not_be_booked_yet_is_left_alone(self):
+        """Start times switched on with none defined produces no departures,
+        so publishing it would put up a page with nothing to book on it. The
+        constraint refuses that, and creating a tour must not hit it."""
+        tour = self._tour(has_specific_time=True)
+
+        self.assertFalse(tour.is_published)
+
+    def test_an_experience_asked_to_stay_down_stays_down(self):
+        """What the demo data and a duplicate pass — an explicit value is a
+        decision, and publishing over it would undo one."""
+        tour = self._tour(is_published=False)
+
+        self.assertFalse(tour.is_published)
 
     # --- Being shown --------------------------------------------------------
 

@@ -222,8 +222,10 @@
 }
 
 // Inclusions and exclusions are written as ordinary bullet lists in the
-// wysiwyg; the tick and the cross are put on here rather than stored in the
-// content, so an operator never has to type a glyph to get one.
+// wysiwyg; the tick is put on here rather than stored in the content, so an
+// operator never has to type a glyph to get one. Both lists get the same tick:
+// a mixed tick/cross reads as a puzzle, so whether a line is included or not is
+// left to the wording of the line itself.
 .o_tour_included ul,
 .o_tour_excluded ul {
     list-style: none;
@@ -234,6 +236,7 @@
     }
 
     li::before {
+        content: "\2713";
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -244,19 +247,9 @@
         vertical-align: -.35rem;
         border-radius: 50%;
         font-size: .8125rem;
+        color: var(--bs-success, #28a745);
+        background-color: rgba(40, 167, 69, .12);
     }
-}
-
-.o_tour_included ul li::before {
-    content: "\2713";
-    color: var(--bs-success, #28a745);
-    background-color: rgba(40, 167, 69, .12);
-}
-
-.o_tour_excluded ul li::before {
-    content: "\2717";
-    color: var(--bs-danger, #dc3545);
-    background-color: rgba(220, 53, 69, .1);
 }
 
 // A numbered line down the side rather than a bare `<ol>`: the steps are a

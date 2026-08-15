@@ -220,6 +220,16 @@ class TourTour(models.Model):
                     tour=tour.name,
                 ))
 
+    def _is_publishable(self):
+        """Whether publishing this tour would produce a page a guest can book.
+
+        The single source of truth for both the constraint below, which refuses
+        a publication that cannot work, and `create`, which publishes on its own
+        and so has to ask the same question first.
+        """
+        self.ensure_one()
+        return bool(self.start_time_ids) or not self.has_specific_time
+
     @api.constrains("has_specific_time", "start_time_ids", "is_published")
     def _check_start_times(self):
         """Checked at publication, not at every save.
@@ -232,7 +242,7 @@ class TourTour(models.Model):
         so is an unbookable page.
         """
         for tour in self:
-            if tour.is_published and tour.has_specific_time and not tour.start_time_ids:
+            if tour.is_published and not tour._is_publishable():
                 raise ValidationError(_(
                     "%s cannot be published: it has start times switched on but "
                     "none defined. Add a start time, or turn it into a date-only "
@@ -252,7 +262,14 @@ class TourTour(models.Model):
         next month, on the record it belongs to.
         """
         tours = super().create(vals_list)
-        for tour in tours:
+        for tour, vals in zip(tours, vals_list):
+            # Published unless the form said otherwise. An experience is filled
+            # in to be sold, so an unpublished one is a step nobody meant to
+            # leave undone, and the toggle stays there to take it back down.
+            # An explicit value in `vals` is a decision and is left alone —
+            # that is what the demo data and the duplicate button pass.
+            if "is_published" not in vals and tour._is_publishable():
+                tour.is_published = True
             tour.message_post(body=Markup("%s <a href=\"%s\">%s</a>") % (
                 _("Website page created:"), tour.website_url, tour.website_full_url,
             ))
