@@ -1,4 +1,5 @@
 from . import common
+from . import test_auto_generation
 from . import test_availability
 from . import test_backend_ui
 from . import test_booking

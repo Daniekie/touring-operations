@@ -8,6 +8,25 @@ from odoo.exceptions import ValidationError
 # Field name per weekday, indexed by `date.weekday()`.
 WEEKDAY_FIELDS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
+# Writing one of these changes *which* departures the rule implies, so the
+# calendar has to be rebuilt. Capacity and party sizes are deliberately absent:
+# they are copied onto a departure when it is created and never rewritten
+# afterwards (see `tour.departure._generate`), so changing them moves nothing.
+SLOT_FIELDS = [
+    "active",
+    "date_from",
+    "date_to",
+    "recurrence",
+    "all_start_times",
+    "start_time_ids",
+    *WEEKDAY_FIELDS,
+]
+
+# Suppresses the sync below. For bulk loads, where one pass at the end is
+# cheaper than one per rule, and for the generator's own tests, which drive
+# `_generate` directly with a horizon of their choosing.
+SKIP_SYNC = "tour_skip_departure_sync"
+
 
 class TourAvailabilityRule(models.Model):
     """A recurring pattern that says when a tour runs.
@@ -82,6 +101,53 @@ class TourAvailabilityRule(models.Model):
     )
 
     departure_ids = fields.One2many("tour.departure", "rule_id")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        rules = super().create(vals_list)
+        rules._sync_departures()
+        return rules
+
+    def write(self, vals):
+        result = super().write(vals)
+        if any(field in vals for field in SLOT_FIELDS):
+            self._sync_departures()
+        return result
+
+    def unlink(self):
+        # Read the departures while the link still exists: `rule_id` is
+        # `ondelete="set null"`, so after the delete nothing connects them back
+        # to the rule that is going away.
+        stranded = self.departure_ids
+        result = super().unlink()
+        stranded = stranded.exists()
+        stranded._retire_orphans(within=stranded)
+        return result
+
+    def _sync_departures(self):
+        """Bring the calendar in line with these rules.
+
+        The whole point of doing this on save rather than leaving it to the
+        nightly cron: a rule that has not been materialised yet is a schedule
+        that exists in the database and nowhere else. The website shows no
+        availability, the calendar is empty, and there is nothing on screen to
+        tell an operator that from a bug — the fix was a menu item they had no
+        reason to know about.
+
+        Both directions, because both are the same mistake seen from either
+        end: a rule that has just been widened owes the calendar departures, and
+        one that has just been narrowed owes it the removal of departures it no
+        longer stands behind.
+        """
+        if self.env.context.get(SKIP_SYNC) or self.env.context.get("install_mode"):
+            return
+        departures = self.env["tour.departure"]
+        live = self.filtered("active")
+        if live:
+            departures._generate(rules=live)
+        # After generating, so that a rule which merely moved its start times
+        # has the new departures in place before the old ones are retired.
+        departures._retire_orphans(within=self.departure_ids)
 
     @api.constrains("date_from", "date_to", "recurrence", *WEEKDAY_FIELDS)
     def _check_dates(self):

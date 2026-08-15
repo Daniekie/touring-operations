@@ -263,6 +263,10 @@ class TourTour(models.Model):
         result = super().write(vals)
         if any(field in vals for field in MENU_FIELDS):
             self.env["website.menu"].sudo()._tour_sync()
+        # Turning start times on or off changes what every rule on this tour
+        # asks for: a whole day becomes several slots, or the other way round.
+        if "has_specific_time" in vals:
+            self.availability_rule_ids._sync_departures()
         return result
 
     def unlink(self):

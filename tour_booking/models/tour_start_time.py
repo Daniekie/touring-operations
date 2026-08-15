@@ -21,6 +21,20 @@ class TourStartTime(models.Model):
         "A tour cannot have the same start time twice.",
     )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Adding an 18:00 sailing puts 18:00 on the calendar straight away."""
+        start_times = super().create(vals_list)
+        start_times.tour_id.availability_rule_ids._sync_departures()
+        return start_times
+
+    def unlink(self):
+        """Dropping a start time takes its unsold departures down with it."""
+        rules = self.tour_id.availability_rule_ids
+        result = super().unlink()
+        rules._sync_departures()
+        return result
+
     @api.constrains("time_of_day")
     def _check_within_the_day(self):
         for start_time in self:

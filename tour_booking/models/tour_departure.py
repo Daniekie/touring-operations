@@ -395,7 +395,35 @@ class TourDeparture(models.Model):
         self._close_past()
 
     @api.model
-    def _retire_orphans(self):
+    def action_refresh_calendar(self):
+        """The menu item behind 'Refresh Calendar'. -> action dict.
+
+        Saving a rule already materialises its departures, so this is the
+        safety net rather than the route: it exists for the day somebody
+        restores a database, disables the cron, or simply wants to be told the
+        calendar is up to date. It said nothing at all before, which from the
+        outside is indistinguishable from a button that does not work.
+        """
+        created = self._generate()
+        self._retire_orphans()
+        self._close_past()
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Calendar refreshed"),
+                "message": (
+                    _("%s new departure(s) added.", len(created))
+                    if created
+                    else _("Everything was already up to date.")
+                ),
+                "type": "success",
+                "next": {"type": "ir.actions.act_window_close"},
+            },
+        }
+
+    @api.model
+    def _retire_orphans(self, within=None):
         """Cancel future departures whose rule no longer wants them.
 
         Deleting a rule, deactivating it or shrinking its date range leaves
@@ -403,13 +431,21 @@ class TourDeparture(models.Model):
         nobody has booked and nobody has touched them by hand — silently
         removing a departure a guest has paid for is far worse than leaving a
         stale row on a calendar.
+
+        `within` narrows the sweep to a known set of departures. The cron passes
+        nothing and checks the lot; a rule being saved passes its own, because
+        one operator editing one schedule has no business re-examining every
+        other tour's calendar on the way.
         """
-        candidates = self.search([
+        domain = [
             ("start_datetime", ">", fields.Datetime.now()),
             ("state", "in", ("draft", "open", "full")),
             ("is_manually_adjusted", "=", False),
             ("seats_sold", "=", 0),
-        ])
+        ]
+        if within is not None:
+            domain.append(("id", "in", within.ids))
+        candidates = self.search(domain)
         orphans = candidates.filtered(lambda d: not d._still_wanted())
         orphans.with_context(**{SYSTEM_WRITE: True}).write({"state": "cancelled"})
         return orphans

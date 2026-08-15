@@ -144,7 +144,7 @@
         <field name="name">Refresh Calendar</field>
         <field name="model_id" ref="model_tour_departure"/>
         <field name="state">code</field>
-        <field name="code">model._cron_generate_departures()</field>
+        <field name="code">action = model.action_refresh_calendar()</field>
     </record>
 
 </odoo>

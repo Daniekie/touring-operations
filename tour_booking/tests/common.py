@@ -162,7 +162,12 @@ class TourCase(TransactionCase):
             "max_pax": 6,
         }
         values.update(overrides)
-        return cls.env["tour.availability.rule"].create(values)
+        # Without the flag the rule would materialise itself on save. These
+        # tests are about the generator, and drive it below with a horizon of
+        # their own; `test_auto_generation.py` covers the save path.
+        return cls.env["tour.availability.rule"].with_context(
+            tour_skip_departure_sync=True
+        ).create(values)
 
     @classmethod
     def _generate(cls, rules, horizon_end=None):
