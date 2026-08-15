@@ -234,6 +234,35 @@ class TestAvailability(TourCase):
 
         self.assertEqual(departure.date, date(2027, 3, 4))
 
+    def test_a_start_time_in_the_hour_the_clock_skips_lands_after_the_jump(self):
+        """Amsterdam has no 02:30 on the last Sunday of March.
+
+        The audit flagged this as a possible silent wrong answer. It is not:
+        `tz.localize` picks the pre-jump offset, which puts the departure at
+        03:30 local — the first real moment after the gap, on the right day, and
+        the only sensible reading of a time that does not exist. Written down
+        because the next person to look at it will wonder the same thing.
+        """
+        self.tour.start_time_ids.unlink()
+        self.env["tour.start.time"].create({
+            "tour_id": self.tour.id, "time_of_day": 2.5,
+        })
+        # 2027-03-28 is the Sunday the clocks go forward in Amsterdam.
+        rule = self._rule(
+            date_from=date(2027, 3, 28), date_to=date(2027, 3, 28),
+            recurrence="one_off",
+        )
+
+        departures = self._generate(rule, horizon_end=date(2027, 3, 29))
+
+        self.assertEqual(len(departures), 1)
+        self.assertEqual(departures.date, date(2027, 3, 28))
+        self.assertEqual(
+            departures._local_start().strftime("%H:%M"), "03:30",
+            "An hour that does not exist should resolve to the first one that "
+            "does, on the same day.",
+        )
+
     def test_past_departures_are_marked_done(self):
         past = self._departure(start_datetime=fields.Datetime.now() - timedelta(days=1))
 
